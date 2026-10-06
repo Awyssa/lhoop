@@ -2,7 +2,7 @@
 // reproducing what upstream's deleted UI layer did as a consequence of the app being opened or running.
 //
 // Source of every block: upstream ui/AppViewModel.kt at commit
-// f36b82d22a87f88e81532dc76016943f33764a0b (line numbers below are in that file unless a file is named).
+// 6ce65730 (line numbers below are in that file unless a file is named).
 // Same order, same conditions, same arguments, same preference accessors. Nothing here is new behaviour.
 //
 // Scope: an already-onboarded install with one paired WHOOP. Deliberately NOT reproduced (upstream lines):

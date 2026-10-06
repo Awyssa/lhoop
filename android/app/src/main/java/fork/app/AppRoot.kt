@@ -46,7 +46,7 @@ fun AppTheme(content: @Composable () -> Unit) {
 
 /**
  * The whole UI. `viewModel()` creates [FoundationDriver] during the first composition, exactly where
- * upstream's root composable created its `AppViewModel` (ui/MainActivity.kt 1584 at f36b82d2). It lives here,
+ * upstream's root composable created its `AppViewModel` (ui/MainActivity.kt 1584 at 6ce65730). It lives here,
  * above the tabs, so the core starts whichever tab is showing.
  */
 @Composable

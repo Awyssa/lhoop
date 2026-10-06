@@ -1,4 +1,4 @@
-// Fork stand-in for upstream ui/MainActivity.kt (commit f36b82d22a87f88e81532dc76016943f33764a0b).
+// Fork stand-in for upstream ui/MainActivity.kt (commit 6ce65730).
 // It keeps upstream's class name because the manifest's launcher aliases and the extracted
 // appLaunchIntent both name com.lhoop.ui.MainActivity. Everything it shows lives in fork.app.
 //

@@ -2,7 +2,7 @@
 // owns the loop itself (grace delay, 30-minute cadence, resume kick); this holds what each step does.
 //
 // Source: upstream ui/AppViewModel.kt lines 1131-1359 at commit
-// f36b82d22a87f88e81532dc76016943f33764a0b. Conditions, arguments and log lines are copied unchanged.
+// 6ce65730. Conditions, arguments and log lines are copied unchanged.
 // Left out: the Health Connect writeback that followed each pass (1350-1353).
 package fork.app
 

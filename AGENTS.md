@@ -14,9 +14,10 @@ of the app, the roadmap and the runbook. Update them when a decision is made or 
 
 ## How to work here
 
-- **Do not commit and do not push unless the owner asks for it in that session.** Make the change in
-  the working tree, say what changed, and ask. A go-ahead for one commit or push does not cover the
-  next. The same goes for anything that rewrites or deletes on a remote.
+- **Never run `git add`, `git commit` or `git push`.** The owner stages, commits and pushes himself.
+  Make the change in the working tree, say which files changed, and stop. The same goes for anything
+  else that writes to the index, the history or a remote: tags, stashes, resets, `git mv`, `git rm`.
+  Reading is fine (`git status`, `git log`, `git diff`).
 - **Do not install a build on the phone unless the owner asks.** See "The phone" below.
 - **Pick sensible defaults** on small open questions and say what you chose. Keep reports short.
 - **Say what is verified and what is assumed.** A build passing is not hardware working.
@@ -152,8 +153,14 @@ exist", run `./gradlew :app:kspFullDebugKotlin --rerun-tasks` and then the tests
 build clears the schema folder Room generates; this happens after most source changes. After a large
 change to the file tree, add `--no-build-cache --rerun-tasks` to the test task instead.
 
-The APK is `com.lhoop.whoop.staging`, signed with the public `android/fork-debug.keystore`. See "The
-phone" before installing it.
+The APK is `com.lhoop.whoop.staging`. See "The phone" before installing it.
+
+**The signing key is a file, and it is not in this repository.** Builds are signed with
+`android/fork-debug.keystore` when it is present; `android/.gitignore` excludes `*.keystore`, so it
+lives only on the owner's Mac. Without it Gradle signs with the machine's own debug key and says
+nothing, and Android refuses to install such a build over an app signed with the real key. Before
+installing a build from another checkout, compare its certificate with the app's
+(`apksigner verify --print-certs`). The key itself is the original project's public one.
 
 **Known failures that are not yours:**
 - `RecoveryDriversTest.driverPointRoundingUsesNearestWithHalfTiesAwayFromZero` and
@@ -180,9 +187,16 @@ was checked on hardware and what was not.
   engine's.
 - **A diagnostic may only state what it observed.** Prefer naming a gap over a line that claims more.
 
-## When the owner asks for a commit
+## The repository, and handing work over
 
-- One concern per commit. English for commit messages, comments and docs.
-- Before it, check that nothing from `whoop-data/` and no personal figure is in the diff.
+The repository's history starts on 2026-10-06, on branch `master`: the owner began a new repository
+after the rename. Commits, commit ids and the `phone-…` tags from before that day do not exist here,
+and the earlier repository is gone. Ids of the original project's own commits, such as `6ce65730`, can
+still be looked up there.
+
+The owner makes every commit. So when a piece of work is done:
+
+- Say which files changed, one concern at a time. Comments and docs are in English.
+- Check that nothing from `whoop-data/` and no personal figure is in the changes, and say so.
 - State the verification: unit-test totals against the known failures, and what was or was not run on
   the phone.

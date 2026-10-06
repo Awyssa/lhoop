@@ -1,8 +1,9 @@
-// Fork stand-in: VERBATIM EXTRACTION of `class ProfileStore` (upstream lines 176-527)
-// from upstream ui/SettingsScreen.kt
-// at commit f36b82d22a87f88e81532dc76016943f33764a0b.
-// The declaration body below is copied byte-for-byte by line range (see
-// core-spike-tools/gen_extractions.py); only the package line and imports are written here.
+// Fork stand-in: `class ProfileStore`, EXTRACTED from upstream ui/SettingsScreen.kt (upstream lines
+// 176-527) at upstream commit 6ce65730.
+// The declaration body was copied by line range, by a one-off script that is not in the repository; only
+// the package line and imports were written here. Since the app was renamed on 2026-10-06 it differs from
+// upstream's in the app's name: identifiers, comments and, in the settings code, the names of the
+// preference file and its keys. Defaults and logic are unchanged.
 // No member was removed.
 package com.lhoop.ui
 

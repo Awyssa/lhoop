@@ -48,10 +48,13 @@ ANDROID_HOME=~/Library/Android/sdk ./gradlew assembleFullRelease -PstagingReleas
 adb install -r app/build/outputs/apk/full/release/app-full-release.apk
 ```
 
-It installs as `com.lhoop.whoop.staging`, signed with `android/fork-debug.keystore`. That key is public,
-so the signature proves nothing about who built an APK: install only APKs you built yourself. A build
-made before the rename has another package name, and Android treats the two as different apps: see
-[`fork/docs/08-runbook.md`](fork/docs/08-runbook.md) before installing over a phone that has one.
+It installs as `com.lhoop.whoop.staging`. Builds are signed with `android/fork-debug.keystore` when
+that file is present. It is not in this repository, so a fresh clone signs with its own machine's debug
+key, and Android will not install that over an app signed with another key. The key the owner uses is
+the original project's public one, so a signature proves nothing about who built an APK: install only
+APKs you built yourself. A build made before the rename has another package name, and Android treats
+the two as different apps: see [`fork/docs/08-runbook.md`](fork/docs/08-runbook.md) before installing
+over a phone that has one.
 
 Unit tests (JVM, no device needed):
 

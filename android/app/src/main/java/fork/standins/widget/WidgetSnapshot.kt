@@ -1,6 +1,6 @@
 // Fork stand-in: NO-OP. Replaces widget/WidgetSnapshot.kt (WidgetSnapshot + WidgetSnapshotStore)
 // and the StressPoint type from widget/StressTrace.kt (upstream commit
-// f36b82d22a87f88e81532dc76016943f33764a0b). Home-screen widgets are removed in this fork: a pushed
+// 6ce65730). Home-screen widgets are removed in this fork: a pushed
 // snapshot is dropped, nothing is written to the "lhoop_widget" preferences and no Glance widget is
 // asked to recompose.
 package com.lhoop.widget

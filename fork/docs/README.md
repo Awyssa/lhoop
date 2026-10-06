@@ -24,14 +24,15 @@ Rules for the code itself are in [`AGENTS.md`](../../AGENTS.md). These notes are
 
 - **Direction:** this is the owner's own app, LHOOP, built on the Bluetooth, protocol, storage and
   analytics core of the app it began as. Everything else in that app was cut. See [02-decisions.md](02-decisions.md).
-- **Renamed on 2026-10-06.** The app is LHOOP in every package, file and identifier. The rename is in
-  the working tree, not committed: the owner deleted the GitHub repository that day and will create a
-  new one. Nothing is committed or pushed unless the owner asks.
+- **Renamed on 2026-10-06, in a new repository.** The app is LHOOP in every package, file and
+  identifier. The owner deleted the old GitHub repository that day and started this one, with a fresh
+  history on branch `master`. Commit ids and tags from before then no longer exist. The owner makes
+  every commit and push himself.
 - **Code:** the cut, the stand-ins, the driver, the manifest overlay, two screens (last night, strap
   status), nights built from the strap's own sleep state and the app's own WHOOP-style scores. It
   builds an APK and passes the unit tests. See [10-app-structure.md](10-app-structure.md).
 - **Phone:** a Pixel 9a (Android 17), with the WHOOP 5.0 fully paired, still runs the last build made
-  before the rename (tag `phone-2026-10-06b`), under the old package name. A build of the renamed code
+  before the rename (the second build of 6 October), under the old package name. A build of the renamed code
   is a different app to Android and would start empty beside it. Moving across is not built yet: see
   [08-runbook.md](08-runbook.md).
 - **WHOOP history:** 240 nights (2025-08-02 to 2026-06-29) are saved locally and analysed.

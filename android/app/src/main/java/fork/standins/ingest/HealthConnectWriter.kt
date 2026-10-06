@@ -1,5 +1,5 @@
 // Fork stand-in: NO-OP. Replaces ingest/HealthConnectWriter.kt (upstream commit
-// f36b82d22a87f88e81532dc76016943f33764a0b). Writing LHOOP's computed metrics into Health Connect is
+// 6ce65730). Writing LHOOP's computed metrics into Health Connect is
 // removed in this fork: nothing is written and no Health Connect client is created.
 package com.lhoop.ingest
 

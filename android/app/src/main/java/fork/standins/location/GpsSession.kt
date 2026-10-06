@@ -1,5 +1,5 @@
 // Fork stand-in: NO-OP. Replaces location/GpsSession.kt (upstream commit
-// f36b82d22a87f88e81532dc76016943f33764a0b). GPS route tracking is removed in this fork: the session is
+// 6ce65730). GPS route tracking is removed in this fork: the session is
 // never active, so ble/WhoopConnectionService.kt never adds the location foreground-service type and
 // never starts the location stream.
 package com.lhoop.location

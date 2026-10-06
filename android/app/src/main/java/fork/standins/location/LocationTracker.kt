@@ -1,5 +1,5 @@
 // Fork stand-in: NO-OP. Replaces location/LocationTracker.kt (upstream commit
-// f36b82d22a87f88e81532dc76016943f33764a0b). GPS route tracking is removed in this fork: the stream
+// 6ce65730). GPS route tracking is removed in this fork: the stream
 // ends immediately with no fixes and LocationManager is never touched.
 package com.lhoop.location
 

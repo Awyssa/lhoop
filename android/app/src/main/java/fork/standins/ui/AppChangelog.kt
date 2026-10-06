@@ -1,8 +1,9 @@
-// Fork stand-in: VERBATIM EXTRACTION of `object AppChangelog`, reduced to `CURRENT_VERSION` (upstream lines 23-29)
-// from upstream ui/AppChangelog.kt
-// at commit f36b82d22a87f88e81532dc76016943f33764a0b.
-// The declaration body below is copied byte-for-byte by line range (see
-// core-spike-tools/gen_extractions.py); only the package line and imports are written here.
+// Fork stand-in: `object AppChangelog`, reduced to `CURRENT_VERSION`, EXTRACTED from upstream
+// ui/AppChangelog.kt (upstream lines 23-29) at upstream commit 6ce65730.
+// The declaration body was copied by line range, by a one-off script that is not in the repository; only
+// the package line and imports were written here. Since the app was renamed on 2026-10-06 it differs from
+// upstream's in the app's name: identifiers, comments and, in the settings code, the names of the
+// preference file and its keys. Defaults and logic are unchanged.
 //
 // Members removed because they reference deleted code and nothing kept uses them:
 //  - Release, releases, Expectation, expectations and everything else after line 29 (upstream lines
@@ -11,7 +12,9 @@
 //
 // CURRENT_VERSION is NOT cosmetic for the foundation: ble/WhoopBleClient.kt passes it to
 // RawHistoryArchive.replayIfNeeded as the once-per-version gate for re-decoding archived history
-// frames. It must be bumped to upstream's value on every upstream sync.
+// frames. Upstream raised it with every release. Raise it here whenever the decoding of history changes
+// (for example when one of upstream's decoder fixes is applied by hand), or archived frames are not
+// decoded again.
 package com.lhoop.ui
 
 object AppChangelog {

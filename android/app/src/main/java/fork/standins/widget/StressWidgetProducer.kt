@@ -1,5 +1,5 @@
 // Fork stand-in: NO-OP. Replaces widget/StressWidgetProducer.kt (upstream commit
-// f36b82d22a87f88e81532dc76016943f33764a0b). The stress widget is removed in this fork, so the
+// 6ce65730). The stress widget is removed in this fork, so the
 // connection service never scores a stress curve for it: shouldRescore is always false, which keeps
 // the three day-sized reads (heart rate, R-R, gravity) off the live-state collector entirely.
 package com.lhoop.widget

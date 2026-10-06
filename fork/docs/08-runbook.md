@@ -7,8 +7,8 @@ first:
 
 - **What this code builds** installs as `com.lhoop.whoop.staging`, labelled LHOOP. No build of it has
   been installed anywhere.
-- **What the phone runs** is the last build made before the rename (tag `phone-2026-10-06b`), under
-  the package name the app had then. It holds every recorded night.
+- **What the phone runs** is the last build made before the rename (the second build of 6 October),
+  under the package name the app had then. It holds every recorded night.
 - **To Android these are two different apps.** Installing a build of this code does not replace the
   app on the phone: it appears beside it, empty, with no saved strap. Nothing moves the data across by
   itself. See "Moving to the renamed app" below before installing one.
@@ -60,7 +60,8 @@ happen: a build that fails to connect loses nights. So:
    ```
 
 4. Run the hardware checks below.
-5. **Tag the commit** once the build has survived a night, for example `git tag phone-2026-10-05`.
+5. **Keep the APK**, named by date, outside the repository, and note in these pages which build is on
+   the phone. Commits and tags are the owner's to make.
 
 Rules:
 
@@ -69,13 +70,17 @@ Rules:
 - Android refuses an install whose version code is lower than the one on the phone. Both builds are 550.
 - If more than one device is attached (an emulator counts), pick the phone: run `adb devices`, then
   `export ANDROID_SERIAL=<serial>`.
-- The signing key is in the repository and public. Install only APKs built here.
+- **The signing key is `android/fork-debug.keystore`, and it is not in the repository** (the ignore
+  file excludes `*.keystore`). It is on the owner's Mac. A build made without it is signed with that
+  machine's own debug key, without any warning, and Android refuses to install it over the app. Check
+  before installing: `apksigner verify --print-certs <apk>` must show the same certificate as the last
+  good APK. The key is the original project's public one, so install only APKs built here.
 
 To roll back, install the previous APK the same way.
 
 ## Hardware checks for a build that changes strap behaviour
 
-Results for the build tagged `phone-2026-10-03`: checks 1, 2, 3, 4, 7 and 9 passed on 2026-10-03, and
+Results for the build of 3 October 2026: checks 1, 2, 3, 4, 7 and 9 passed on 2026-10-03, and
 checks 5 and 8 on the first night (3 to 4 October): 16 hours in the background and a complete night.
 Checks 6 and 10 have not been run. The strap used 4% of its battery over that night.
 

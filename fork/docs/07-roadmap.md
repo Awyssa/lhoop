@@ -24,7 +24,7 @@ Status on 2026-10-06, after the third night. Tick items as they land.
 - [x] Settle the R-R units on this firmware: milliseconds
       ([03-whoop5-status.md](03-whoop5-status.md)).
 - [x] Decide what the strap's "up" state is worth: it counts as sleep, bar the strap's wake
-      confirmation. On the phone since the second build of 2026-10-06 (tag `phone-2026-10-06b`).
+      confirmation. On the phone since the second build of 2026-10-06.
 - [x] First comparison with the Garmin's sleep page, and the owner's account of the first two nights.
 
 ## Next: check the new nights against the references
@@ -72,8 +72,11 @@ That is a good start, not a result.
 
 ## Housekeeping
 
-- [ ] Tag the commit of each build that goes on the phone. Tags so far: `phone-2026-10-03`,
-      `phone-2026-10-04`, `phone-2026-10-06`, `phone-2026-10-06b`.
+- [ ] Keep the APK of every build that goes on the phone, named by date, outside the repository. The
+      tags that marked those builds went with the old history. Whether to tag builds again is the
+      owner's call: he makes the commits.
+- [ ] Decide where the signing key lives. `android/fork-debug.keystore` is on the owner's Mac only; a
+      build without it is signed with another key and cannot be installed over the app.
 - [ ] Move the phone to the renamed app: an Import backup button, tried in the emulator, then the
       steps in [08-runbook.md](08-runbook.md). Until then the phone runs the build from before the
       rename.

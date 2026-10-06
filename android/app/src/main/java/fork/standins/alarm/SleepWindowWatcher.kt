@@ -1,5 +1,5 @@
 // Fork stand-in: NO-OP. Replaces alarm/SleepWindowWatcher.kt (upstream commit
-// f36b82d22a87f88e81532dc76016943f33764a0b). The phone smart alarm is removed in this fork: the
+// 6ce65730). The phone smart alarm is removed in this fork: the
 // detector never fires and reports nothing seen.
 package com.lhoop.alarm
 

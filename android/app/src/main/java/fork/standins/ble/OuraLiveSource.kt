@@ -1,5 +1,5 @@
 // Fork stand-in: NO-OP. Replaces ble/OuraLiveSource.kt (upstream commit
-// f36b82d22a87f88e81532dc76016943f33764a0b, 2,730 lines). Oura ring support is removed in this fork.
+// 6ce65730, 2,730 lines). Oura ring support is removed in this fork.
 //
 // ble/SourceCoordinator.kt (kept byte-identical) still constructs this class when the ACTIVE registry
 // device has sourceKind "oura", then calls connect/scan on it. Here every call does nothing: no scan,

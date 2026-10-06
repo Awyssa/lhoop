@@ -1,5 +1,5 @@
 // Fork stand-in for a data type from the deleted oura package (upstream oura/RingGen.kt,
-// commit f36b82d22a87f88e81532dc76016943f33764a0b). Oura support is removed in this fork;
+// commit 6ce65730). Oura support is removed in this fork;
 // ble/SourceCoordinator.kt still names this type when it builds the (no-op) Oura source.
 // The three constants and from(model) are copied from upstream; every other member (MTU, capabilities,
 // name / hardware-id recognition) is omitted because no kept code reads it.

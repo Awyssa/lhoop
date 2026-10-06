@@ -1,6 +1,6 @@
 // Fork-owned. The "Strap" tab: the foundation's own state and row counts, with Connect, Disconnect, Sync
 // now, Export backup and a Debug logging switch. Each control calls what upstream's UI called (commit
-// f36b82d22a87f88e81532dc76016943f33764a0b); the call sites are cited where they are used.
+// 6ce65730); the call sites are cited where they are used.
 package fork.app
 
 import android.app.ActivityManager

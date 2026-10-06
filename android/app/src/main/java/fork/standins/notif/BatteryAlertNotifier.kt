@@ -1,5 +1,5 @@
 // Fork stand-in: NO-OP. Replaces notif/BatteryAlertNotifier.kt (upstream commit
-// f36b82d22a87f88e81532dc76016943f33764a0b). Strap-battery notifications are removed in this fork.
+// 6ce65730). Strap-battery notifications are removed in this fork.
 // Signatures match the four entry points ble/WhoopConnectionService.kt calls; each does nothing.
 package com.lhoop.notif
 

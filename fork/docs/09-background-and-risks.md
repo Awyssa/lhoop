@@ -53,10 +53,10 @@ Caveats:
 
 ## Risks to keep in mind
 
-- **Terms of service.** The original app's own terms say using it may breach WHOOP's. No reports of users being
-  penalised were found; WHOOP's documented action has been against developers.
-- **The signing key is public.** Anyone can build an APK that installs over this app. Install only
-  builds made here or from upstream's releases.
+- **Terms of service.** The original app's own terms say using it may breach WHOOP's. No reports of
+  users being penalised were found; WHOOP's documented action has been against developers.
+- **The signing key is public.** It is the original project's published debug key, so anyone can
+  build an APK that installs over this app. Install only builds made here.
 - **Test Centre** (original build only). Some experiments write lasting settings to the strap, and one
   sends a power-cycle command. Use only the Debug logging switch. The cut build has no Test Centre.
 - **The cut build is new on hardware.** Connecting, bonding, syncing and exporting were confirmed on the
