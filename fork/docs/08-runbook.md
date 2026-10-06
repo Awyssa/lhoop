@@ -5,15 +5,23 @@ How to do the recurring things. Commands run from the repository root unless sta
 **The app was renamed LHOOP on 2026-10-06, and that changed what a build is to the phone.** Read this
 first:
 
-- **What this code builds** installs as `com.lhoop.whoop.staging`, labelled LHOOP. It is installed on
-  the phone beside the old app since 2026-10-06, and is not in use yet.
-- **What the phone runs** is the last build made before the rename (the second build of 6 October),
-  under the package name the app had then. It holds every recorded night.
-- **To Android these are two different apps.** Installing a build of this code does not replace the
-  app on the phone: it appears beside it, empty, with no saved strap. Nothing moves the data across by
-  itself. See "Moving to the renamed app" below before installing one.
-- **The original build** (the unmodified original app, build 550 from upstream `c800fb61`) is kept as
-  an APK. It carries the old package name too, so it rolls back the old app, not the renamed one.
+- **What the phone runs** is LHOOP, `com.lhoop.whoop.staging`, since the evening of 2026-10-06. It
+  holds every recorded night and it is the app connected to the strap. The build on it was made that
+  day at 18:48 from the source as it stands in commit `7914f17`.
+- **A build of this code installs over the app on the phone**, as long as it is signed with the same
+  key. See "Install on the phone".
+- **The app it replaced is still installed, and stopped.** It is the last build made before the rename,
+  under the package name the app had then, with its own copy of the data up to the move. To Android
+  the two are different apps. **Do not open the old one:** it reconnects to the strap by itself when
+  opened, and two apps must not both hold the strap. Removing it is the owner's call. See "Moving to
+  the renamed app" below.
+- **There is no tested way back that keeps what LHOOP records.** The old app and the original build
+  (the unmodified original app, build 550 from upstream `c800fb61`) are kept as APKs, and both carry
+  the old package name. The old app has no Import button. The original build has a restore screen, but
+  it looks inside a backup for the database under the old name, so it would not take a LHOOP backup as
+  it is; that route has not been tried. A sync is acknowledged to the strap, which then does not hand
+  those records out again, so rows synced by LHOOP exist only in LHOOP. A fault in LHOOP is best fixed
+  by installing a better LHOOP over it.
 
 ## Build
 
@@ -28,40 +36,56 @@ The APK is `android/app/build/outputs/apk/full/release/app-full-release.apk`.
 
 ## Moving to the renamed app
 
-**Started on 2026-10-06, not finished.** Where it stands:
+**Done on 2026-10-06, between 19:25 and 19:28.** A renamed build is a different app to Android and
+starts empty, so the data came across through a backup. In order, each step checked before the next:
 
-- LHOOP has an **Import backup** button (Strap tab). It calls the core's own restore and then closes
-  the app, which has to be opened again.
-- The whole restore was rehearsed in the emulator with a real backup made by the old app: a fresh
-  LHOOP restored it, the core scored the days again, and the Last night tab showed the same nights and
-  figures as the old app on the phone.
-- LHOOP is installed on the phone beside the old app (18:54). It has no permissions yet, no data, and
-  has never connected to the strap. The old app is still the one recording.
+1. **Old app:** its sync finished, then **Disconnect** ("not connected"), then **Export backup**. The
+   export was pulled to the Mac and checked: `PRAGMA integrity_check`, and a newest row less than a
+   minute old.
+2. **The old app was stopped** (`adb shell am force-stop <the old package name>`). Not uninstalled.
+3. **LHOOP:** the nearby-devices and notification permissions were granted over USB
+   (`adb shell pm grant`), with the owner's agreement, rather than by tapping Allow.
+4. **LHOOP:** Strap tab → **Import backup** → Choose the file → the export. "Backup restored", the
+   app closed, and on opening it again the Last night tab showed the nights.
+5. **LHOOP:** Strap tab → **Connect**. "connected" and "Bonded: yes" inside half a minute, then a
+   sync.
 
-The move, in order. The phone has to stay unlocked throughout; it takes about four minutes.
+What was checked afterwards, on an export taken from LHOOP ten minutes later:
 
-1. **Old app:** open it, wait for its sync to finish, tap **Disconnect**. It must read "not connected".
-2. **Old app:** **Export backup**, save into Downloads, pull the file to the Mac and check it
-   (`PRAGMA integrity_check`, newest row a few minutes old).
-3. **Stop the old app** (`adb shell am force-stop <the old package name>`). Its data stays. Do not open
-   it again while LHOOP holds the strap: it reconnects by itself when opened, and two apps must not
-   both hold the strap.
-4. **LHOOP:** open it and allow the two permissions it asks for (nearby devices, notifications).
-5. **LHOOP:** Strap tab → **Import backup** → Choose the file → the export from step 2. It says
-   "Backup restored" and closes. Open it again: the Last night tab shows the nights.
-6. **LHOOP:** Strap tab → **Connect**. A fresh install does not know the strap is a 5.0, so it looks
-   for a WHOOP 4 first and switches to the 5/MG family after eight seconds. Expect "connected" and
-   "Bonded: yes" within a minute, then a sync.
-7. Set LHOOP's battery usage to **Unrestricted** (Settings → Apps → LHOOP → App battery usage).
-8. Compare a night in LHOOP with `fork/tools/night_report.py` before removing the old app. Removing an
-   app deletes its data.
+- **The restore lost nothing.** Every table with a time column has the same number of rows, up to the
+  old app's last one, as the old app's export.
+- **The move lost nothing.** The strap went on recording while neither app held it, and LHOOP's first
+  sync brought those minutes in: heart rate, sleep state, gravity and skin temperature have a row for
+  every second across the move.
+- **The Last night tab reads the same** as the old app's did that afternoon, figure for figure, in the
+  app's own cards and in the original engine's card. The core scored the recent days again after the
+  restore, because the old rows are stored under an id that ended in the old name, and for the night
+  on screen it arrived at the same figures. It stored four sleep sessions where the old app had five;
+  the app does not read them.
+- Hardware checks 1, 2, 3, 4 and 9 passed on LHOOP: see the next section but one.
 
-If step 6 fails, stop LHOOP and open the old app: it reconnects by itself. If neither can bond any more,
-the strap has to be put into pairing mode again (see "Pairing a WHOOP 5.0").
+What a backup carries: the database, and the profile settings. What it does not: the other settings
+(the saved strap, Debug logging and the rest live in preference files whose names changed with the app,
+so LHOOP started on the defaults and learned the strap when it first connected), and the app's own
+sleep records, which LHOOP works out again from the strap's rows.
 
-What a restore does not carry: the old app's settings (their names changed, so LHOOP starts on the
-defaults), and the days the core had already scored (they are stored under an id that ended in the old
-name; the core scores recent days again from the raw rows, which the rehearsal showed).
+Left to do:
+
+- **Battery usage for LHOOP → Unrestricted** (see "Phone settings"). The old app had it; to Android
+  LHOOP is a new app. It was not yet set when the move finished.
+- **A first full night under LHOOP** (check 8), and the link holding in the background (check 5).
+- **Remove the old app**, when the owner is satisfied. Removing an app deletes its data; that copy ends
+  at the move. Until then it must stay closed.
+
+**What opening the old app costs, seen on 2026-10-06.** It is still labelled with the old name and has
+the same picture as LHOOP, and it was opened by mistake that evening. It reconnected at once. Android
+shares one Bluetooth link between apps, so for 26 minutes both were connected, each with its own
+service, each asking the strap for history. The strap hands a record out once: what the old app
+fetched (24 minutes when it opened, and two more after a reconnect) never reached LHOOP, and LHOOP's
+recording has a hole there. `adb shell pidof <package>` for each app shows whether both are running;
+`adb shell am force-stop <the old package name>` stops the old one.
+
+If LHOOP ever cannot bond, the strap has to be put into pairing mode again (see "Pairing a WHOOP 5.0").
 
 ## Install on the phone
 
@@ -106,6 +130,28 @@ was installed over the last, started with `adb shell monkey -p <package> -c
 android.intent.category.LAUNCHER 1` while the phone was locked, and seen in the log to reconnect and
 finish a sync (checks 1, 2 and 4). All of those were builds from before the rename.
 
+**LHOOP** (the build of 6 October, 18:48) changed nothing in how the app talks to the strap either, but
+it is a new install with fresh settings, so the checks were run again after the move on 2026-10-06:
+
+- 1, 3, 4 and 9 passed, and the Connect half of 7.
+- 2 passed after a forced stop: opened again with no tap, the log read "Auto-reconnecting to your saved
+  WHOOP 5.0 / MG…", and it was connected, bonded and syncing within fifteen seconds.
+- 6 was not run, but one recovery was seen: the link timed out (status 147) nine minutes after the
+  move, and the app reconnected by itself on its third try, under a minute later, and synced. The
+  strap's own event log shows the old app losing and regaining the link several times a day in the
+  same way.
+- Not run on LHOOP yet: 5, 6, the Disconnect half of 7, 8 and 10.
+- R-R intervals come only out of the strap's history records, and the strap leaves them out while
+  the wrist is moving. None arrived in the first quarter of an hour under LHOOP, with the wrist moving
+  throughout; the sync at 19:56 then brought in several hundred. So an R-R count that stands still
+  for a while is not a fault by itself.
+- In the background "Last sync" moves about every half hour, not every quarter. The timer for the
+  automatic sync and the shortest gap allowed between two automatic syncs are both 15 minutes, and
+  the timer came two seconds early: the log read "Backfill: skipped (PERIODIC) - policy floor not met"
+  once, at 19:53. By the code every other tick goes that way. It is the original app's behaviour and
+  loses nothing, because the strap keeps its records until they are fetched. Opening the app or
+  tapping Sync now syncs at once.
+
 | # | Check | What to look for |
 |---|---|---|
 | 1 | It installs | `Success`. A signature or downgrade error means stop. |
@@ -116,7 +162,7 @@ finish a sync (checks 1, 2 and 4). All of those were builds from before the rena
 | 6 | It recovers | Toggle Bluetooth off and on; walk out of range and back. Each time it reconnects without tapping Connect. |
 | 7 | The buttons work | Disconnect: the notification goes and it stays down. Connect: back to connected and bonded. |
 | 8 | A night is recorded | Do not open the app overnight. In the morning: a recent "Last sync", tens of thousands of new heart-rate rows, and non-zero gravity, skin temperature, sleep state and R-R. |
-| 9 | Export works | Export backup proposes `lhoop-backup-<date>.lhoopbak` and says "Backup exported." The file is a zip holding `lhoop-backup.sqlite`. (The app on the phone, built before the rename, uses its old name in all three.) |
+| 9 | Export works | Export backup proposes `lhoop-backup-<date>.lhoopbak` and says "Backup exported." The file is a zip holding `lhoop-backup.sqlite`. (A build from before the rename used its old name in all three.) |
 | 10 | Battery | Strap and phone drain over a night is about what it was on the original build. |
 
 After a phone restart or a force-stop, nothing records until the app is opened once. That is upstream's
@@ -128,7 +174,9 @@ Health Connect access.
 
 ## Phone settings
 
-- Settings → Apps → the app → App battery usage → **Unrestricted**. Set on 2026-10-03.
+- Settings → Apps → LHOOP → App battery usage → **Unrestricted**. It was set for the old app on
+  2026-10-03, and Android does not carry it over to a new app: it has to be set again for LHOOP.
+  `adb shell dumpsys deviceidle whitelist` lists the apps that have it.
 - Open the app once after every phone restart or app update.
 
 ## Working on the phone over USB
@@ -189,10 +237,10 @@ fork/tools/night_report.py whoop-data/lhoop-backups/night-$(date +%Y-%m-%d) --ti
 ```
 
 The first exports a backup through the app's Strap tab and pulls it into `whoop-data/lhoop-backups/`.
-While the phone still runs the build from before the rename, tell it which app to drive:
-`APP_PACKAGE=<the old package name> fork/tools/pull_night.sh` (`adb shell pm list packages whoop`
-prints it). Both tools read a backup whatever the app that wrote it was called.
-It ran as a script for the first time on 6 October and worked; it has not run since the rename. The second prints how complete the
+It ran against LHOOP on the phone on the evening of 6 October, after the move, and worked. To drive a
+build installed under another package name, set `APP_PACKAGE` (`adb shell pm list packages whoop`
+prints the names). Both tools read a backup whatever the app that wrote it was called. The second
+prints how complete the
 recording is, the sleeps in the strap's own state by the app's rules, with heart rate and HRV worked
 out independently from the raw data, the core's sessions beside them, and what the core stored. Add
 `--hours 90` to see several nights.
@@ -206,7 +254,9 @@ backup on the Mac:
 cd android && ANDROID_HOME=~/Library/Android/sdk ./gradlew testFullDebugUnitTest --tests "fork.app.StrapSleepBackupCheckTest"
 ```
 
-Its output is in `android/app/build/test-results/testFullDebugUnitTest/TEST-fork.app.StrapSleepBackupCheckTest.xml`.
+Its output is in `android/app/build/test-results/testFullDebugUnitTest/TEST-fork.app.StrapSleepBackupCheckTest.xml`:
+each night as the app finds it, then the scores the screen shows for it, beside what they would be with
+the other sleeps left out.
 
 For the Garmin, the owner opens last night's sleep page in Garmin Connect (More → Health Stats →
 Sleep) and leaves it on screen. Then:

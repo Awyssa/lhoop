@@ -8,6 +8,7 @@ import fork.app.scoring.SleepRecord
 import fork.app.scoring.SleepVitalsCalc
 import fork.app.scoring.StateMinute
 import fork.app.scoring.StrapSleeps
+import fork.app.scoring.WhoopStyle
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -20,7 +21,8 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Replays the app's sleep finding over real backups pulled off the phone, with the same SQL and the same
- * Kotlin the app runs, and prints each night for comparison with `fork/tools/night_report.py`.
+ * Kotlin the app runs, and prints each night for comparison with `fork/tools/night_report.py`. It then
+ * scores those nights as the screen does, at the default usual sleep need.
  *
  * The backups are private health data and never in git, so this test is SKIPPED wherever
  * `whoop-data/lhoop-backups/` holds none (CI, any other machine). Its output is health data too.
@@ -164,6 +166,29 @@ class StrapSleepBackupCheckTest {
                 line("${day.day} night", day.night)
             }
             assigned.napsSince.forEach { line("  nap since", it) }
+
+            // The scores the screen shows for these nights, and the same with the other sleeps left out.
+            val inputs = assigned.days.mapNotNull { Nights.input(Night(it.day.toString(), it.night, it.naps, core = null)) }
+            val usualNeed = AppSettings.DEFAULT_HABITUAL_NEED_MIN.toDouble()
+            val scored = WhoopStyle.score(inputs, usualNeed)
+            val withoutNaps = WhoopStyle.score(inputs.map { it.copy(naps = emptyList()) }, usualNeed).associateBy { it.day }
+            fun whole(v: Double?) = v?.let { "%.0f".format(it) } ?: "-"
+            println("Scores at a usual need of ${Nights.duration(usualNeed)}")
+            scored.forEach { s ->
+                val plain = withoutNaps.getValue(s.day)
+                println(
+                    "  %s need %s (debt in %s, earlier sleep off %s) | slept %s%% of it | consistency %s | sleep score %s | recovery %s || other sleeps left out: need %s, sleep score %s, recovery %s".format(
+                        s.day, Nights.duration(s.needMin), Nights.duration(s.debtInMin), Nights.duration(s.napCreditMin), whole(s.sufficiencyPct),
+                        whole(s.consistencyPct), whole(s.sleepScore), whole(s.recovery),
+                        Nights.duration(plain.needMin), whole(plain.sleepScore), whole(plain.recovery),
+                    ),
+                )
+            }
+            assertTrue(scored.size == assigned.days.size)
+            scored.zip(assigned.days).forEach { (s, day) ->
+                assertTrue(s.napCreditMin == day.naps.sumOf { it.sleep.asleepSec } / 60.0)
+                assertTrue(s.needMin >= WhoopStyle.MIN_NEED_MIN && s.needMin <= usualNeed + WhoopStyle.DEBT_CAP_MIN)
+            }
 
             // What must hold whatever the night looked like.
             sleeps.zipWithNext().forEach { (a, b) -> assertTrue("sleeps overlap", a.endTs < b.bedStartTs) }

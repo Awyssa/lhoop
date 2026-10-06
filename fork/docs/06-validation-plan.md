@@ -56,15 +56,15 @@ weights it toward the last deep-sleep period. Compare like with like.
   in the strap's own state with heart rate and HRV worked out independently, the core's sessions
   beside them, and what the core stored.
 - **`StrapSleepBackupCheckTest`** (a unit test, skipped where there is no backup) replays the app's own
-  SQL and Kotlin over the newest backup on the Mac and prints each night. It is the start of the replay
-  harness: it covers how the app finds sleeps and their heart figures, not yet the scores, and it
-  prints no reference beside them.
+  SQL and Kotlin over the newest backup on the Mac and prints each night, then the scores the screen
+  would show for them, with the other sleeps counted and with them left out. It is the start of the
+  replay harness: it prints no reference beside them.
 
 - **`fork/tools/capture_garmin.sh`** saves the Garmin Connect sleep page off the phone's screen, as
   screenshots and text.
 
-Still missing: the Garmin's sleep times in a form a tool can read (they are only in a picture), and the
-scores in the replay.
+Still missing: the Garmin's sleep times in a form a tool can read (they are only in a picture), and a
+reference beside the scores in the replay.
 
 ## Expectations
 

@@ -226,7 +226,7 @@ private fun SleepCard(night: Night, napsSince: List<SleepRecord>) {
                 HorizontalDivider()
                 night.naps.forEach { DetailRow("Earlier sleep, ${Nights.napLabel(it)}", Nights.durationSec(it.sleep.asleepSec)) }
                 napsSince.forEach { DetailRow("Sleep since, ${Nights.napLabel(it)}", Nights.durationSec(it.sleep.asleepSec)) }
-                Note("Other sleeps are listed. They do not count towards the scores yet.")
+                Note(Nights.otherSleepsNote(earlier = night.naps.isNotEmpty(), since = napsSince.isNotEmpty()))
             }
         }
     }
@@ -264,6 +264,9 @@ private fun ScoreCard(score: WhoopStyleScore?, habitualNeedMin: Int) {
             DetailRow("Sleep needed", score?.let { Nights.duration(it.needMin) } ?: Nights.DASH)
             if (score != null && score.debtInMin >= 1.0) {
                 DetailRow("  of which debt from the night before", Nights.duration(score.debtInMin))
+            }
+            if (score != null && score.napCreditMin >= 1.0) {
+                DetailRow("  after taking off earlier sleep", Nights.duration(score.napCreditMin))
             }
             DetailRow("Slept, of what was needed", Nights.whole(score?.sufficiencyPct, "%"))
             DetailRow("Consistency with recent nights", Nights.whole(score?.consistencyPct))

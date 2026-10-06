@@ -8,6 +8,7 @@ package fork.app
 import com.lhoop.analytics.RecoveryScorer
 import com.lhoop.data.DailyMetric
 import com.lhoop.data.SleepSession
+import fork.app.scoring.NapInput
 import fork.app.scoring.NightInput
 import fork.app.scoring.SleepRecord
 import java.time.Instant
@@ -115,6 +116,7 @@ internal object Nights {
     /**
      * A night as an input to the WHOOP-style scores, or null when its key is not a date. Bed and wake
      * become minutes from that day's midnight where the night was slept, so an evening bedtime is negative.
+     * The other sleeps before the night go with it, in the same minutes: they earn it credit.
      */
     fun input(night: Night): NightInput? {
         val day = date(night.day) ?: return null
@@ -128,6 +130,13 @@ internal object Nights {
             wakeMinute = (sleep.endTs - midnight) / 60.0,
             hrvMs = night.hrvMs?.takeIf { it > 0.0 },
             restingHr = night.restingHr?.toDouble(),
+            naps = night.naps.map {
+                NapInput(
+                    startMinute = (it.sleep.bedStartTs - midnight) / 60.0,
+                    endMinute = (it.sleep.endTs - midnight) / 60.0,
+                    asleepMin = it.sleep.asleepSec / 60.0,
+                )
+            },
         )
     }
 
@@ -160,6 +169,15 @@ internal object Nights {
     /** "22:10 to 06:40". */
     fun span(fromTs: Long, toTs: Long, offset: ZoneOffset, locale: Locale = Locale.getDefault()): String =
         "${clock(fromTs, offset, locale)} to ${clock(toTs, offset, locale)}"
+
+    /**
+     * What the other sleeps listed with a night do to the scores. An [earlier] one, before the night, has
+     * its time asleep taken off what the night needed; one [since] will do the same for the next night.
+     */
+    fun otherSleepsNote(earlier: Boolean, since: Boolean): String = listOfNotNull(
+        "An earlier sleep takes its time asleep off what this night needed.".takeIf { earlier },
+        "A sleep since will do the same for tonight.".takeIf { since },
+    ).joinToString(" ")
 
     /** A nap's label: its weekday and times, such as "Sun 14:15 to 15:40". */
     fun napLabel(nap: SleepRecord, locale: Locale = Locale.getDefault()): String {

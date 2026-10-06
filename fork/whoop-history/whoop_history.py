@@ -22,6 +22,9 @@ Two quirks of the API that this script handles, both found the hard way:
   * A cycle's `recovery` is not always the main sleep's. After a nap, WHOOP re-scores the cycle's
     recovery from the nap (the nap is only in `v2_activities`, never in `sleeps`). A recovery is paired
     with a sleep only when `recovery.activity_id == sleep.activity_id`.
+
+A nap is listed with nothing but when it began and ended. Its credit shows up on the main sleep of the
+NEXT cycle, so each night here carries the naps of the cycle before it.
 """
 import argparse
 import glob
@@ -48,8 +51,14 @@ def merge(folder):
     """One record per cycle id across all files, preferring complete, sleep-paired occurrences."""
     occurrences = {}
     for path in sorted(glob.glob(f"{folder}/**/*.json", recursive=True)):
-        records = json.load(open(path))["records"]
-        if not records:
+        try:
+            data = json.load(open(path))
+        except (OSError, ValueError):
+            continue
+        # The folder also holds other private JSON (an unpacked backup's settings, for one). Only a
+        # download of cycles has a list of records that each carry a cycle.
+        records = data.get("records") if isinstance(data, dict) else None
+        if not isinstance(records, list) or not records or not all(isinstance(r, dict) and "cycle" in r for r in records):
             continue
         days = [cycle_day(r) for r in records]
         lo, hi = min(days), max(days)
@@ -72,7 +81,7 @@ def merge(folder):
                 best = dict(best, recovery=rc)
                 break
         merged.append(best)
-    merged.sort(key=cycle_day)
+    merged.sort(key=lambda r: (cycle_day(r), r["cycle"].get("during") or ""))
     return merged
 
 
@@ -88,10 +97,21 @@ def _tz(offset):  # "+01:00" or "+0000"
     return timezone(sign * timedelta(hours=int(m.group(2)), minutes=int(m.group(3))))
 
 
+def _naps(record):
+    """The naps WHOOP filed in a cycle, as (start, end). They are only in `v2_activities`."""
+    return sorted(_range(a["during"]) for a in (record.get("v2_activities") or []) if a.get("type") == "nap")
+
+
 def load(folder):
-    """Per-night rows: the cycle's main sleep, plus its recovery when the recovery belongs to that sleep."""
+    """Per-night rows: the cycle's main sleep, plus its recovery when the recovery belongs to that sleep.
+
+    `naps` are the naps of the cycle before this night's, whether or not that cycle had a main sleep:
+    those are the ones WHOOP gave this night credit for.
+    """
     rows = []
+    naps_before = []
     for r in merge(folder):
+        naps, naps_before = naps_before, _naps(r)
         main = [s for s in r["sleeps"] if not s.get("is_nap")]
         if not main:
             continue
@@ -111,6 +131,7 @@ def load(folder):
             "debt_pre_h": s["debt_pre"] / MS_PER_HOUR, "strain_need_h": s["need_from_strain"] / MS_PER_HOUR,
             "nap_credit_h": s["credit_from_naps"] / MS_PER_HOUR, "strain": r["cycle"]["scaled_strain"],
             "debt_post_h": (s.get("debt_post") or 0) / MS_PER_HOUR,
+            "naps": [(a.astimezone(tz), b.astimezone(tz)) for a, b in naps],
         }
         rec = r["recovery"]
         if isinstance(rec, dict) and rec.get("recovery_score") is not None and rec.get("activity_id") == s.get("activity_id"):
@@ -241,6 +262,7 @@ def report_fits(rows):
 # in step: the Kotlin tests pin values produced by this code.
 
 DEBT_CAP_H = 2.13
+MIN_NEED_H = 1.0
 CONSISTENCY_NIGHTS = 3
 BASELINE_NIGHTS, BASELINE_WINDOW_DAYS, MIN_BASELINE_NIGHTS = 8, 14, 3
 MIN_LN_HRV_SPREAD, RHR_SPREAD_BPM, NEUTRAL_CONSISTENCY = 0.05, 6.0, 50.0
@@ -253,35 +275,75 @@ def debt_after(shortfall_h):
     return max(0.0, min(DEBT_CAP_H, 0.70 * shortfall_h - 0.053 * shortfall_h * shortfall_h))
 
 
+def _wake_midnight(row):
+    return row["wake"].replace(hour=0, minute=0, second=0, microsecond=0)
+
+
 def clock_interval(row):
     """Bed and wake as minutes from the wake day's local midnight (bed is negative for an evening start)."""
-    midnight = row["wake"].replace(hour=0, minute=0, second=0, microsecond=0)
+    midnight = _wake_midnight(row)
     return (row["bed"] - midnight).total_seconds() / 60.0, (row["wake"] - midnight).total_seconds() / 60.0
 
 
+def nap_intervals(row):
+    """The naps before the night, in the same minutes as `clock_interval` (so mostly negative)."""
+    midnight = _wake_midnight(row)
+    return [((a - midnight).total_seconds() / 60.0, (b - midnight).total_seconds() / 60.0) for a, b in row["naps"]]
+
+
+def clock_spans(intervals):
+    """Intervals in minutes from a midnight, folded onto one 24-hour clock: sorted, merged, within 0..1440."""
+    parts = []
+    for a, b in intervals:
+        if b <= a:
+            continue
+        if b - a >= 1440.0:
+            return [(0.0, 1440.0)]
+        start = a % 1440.0
+        end = start + (b - a)
+        parts += [(start, end)] if end <= 1440.0 else [(start, 1440.0), (0.0, end - 1440.0)]
+    merged = []
+    for a, b in sorted(parts):
+        if merged and a <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], b))
+        else:
+            merged.append((a, b))
+    return merged
+
+
 def same_state_share(a, b):
-    """Share of the 24 hours in which two nights agree on asleep or awake."""
-    overlap = max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
-    either = (a[1] - a[0]) + (b[1] - b[0]) - overlap
-    return min(1.0, max(0.0, (overlap + (1440.0 - either)) / 1440.0))
+    """Share of the 24 hours in which two days agree on asleep or awake.
+
+    Each day is a list of intervals asleep, in minutes from a midnight: the night from bed to wake, and
+    any naps before it. They are compared by the clock, so 23:00 one day lines up with 23:00 another.
+    """
+    sa, sb = clock_spans(a), clock_spans(b)
+    both = sum(max(0.0, min(x1, y1) - max(x0, y0)) for x0, x1 in sa for y0, y1 in sb)
+    asleep = sum(x1 - x0 for x0, x1 in sa) + sum(y1 - y0 for y0, y1 in sb)
+    return min(1.0, max(0.0, (1440.0 - asleep + 2.0 * both) / 1440.0))
 
 
 def model_scores(nights, habitual_h):
     """Score nights with the app's model.
 
     `nights` is a list of dicts with `date`, `asleep_h`, `eff`, `interval` (see `clock_interval`), `hrv` and
-    `rhr`; any of the last five may be None. Returns one dict per night, oldest first.
+    `rhr`; any of the last five may be None. A night may also carry `naps`: the other sleeps since the
+    night before, each a dict with `interval` (same minutes as the night's) and `asleep_h`. Returns one
+    dict per night, oldest first.
     """
     by_day = {}
     for n in sorted(nights, key=lambda x: x["date"]):
         by_day.setdefault(n["date"], n)
+    # A day's pattern for consistency: the night from bed to wake, and the naps before it.
+    pattern = lambda n: [n["interval"]] + [nap["interval"] for nap in n.get("naps") or []]
     out, debt, previous = [], 0.0, None
     for day, n in by_day.items():
         if previous != day - timedelta(days=1):
             debt = 0.0
-        need = habitual_h + debt
+        credit = sum(max(0.0, nap["asleep_h"]) for nap in n.get("naps") or [])
+        need = max(MIN_NEED_H, habitual_h + debt - credit)
         suff = None if n.get("asleep_h") is None else max(0.0, min(1.0, n["asleep_h"] / need) * 100)
-        shares = [same_state_share(n["interval"], by_day[day - timedelta(days=k)]["interval"])
+        shares = [same_state_share(pattern(n), pattern(by_day[day - timedelta(days=k)]))
                   for k in range(1, CONSISTENCY_NIGHTS + 1)
                   if n.get("interval") and by_day.get(day - timedelta(days=k), {}).get("interval")]
         cons = min(100.0, max(0.0, -76.6 + 160.8 * st.mean(shares))) if shares else None
@@ -303,7 +365,8 @@ def model_scores(nights, habitual_h):
             rhr_c = phi(-(n["rhr"] - st.mean(p["rhr"] for p in earlier)) / RHR_SPREAD_BPM)
             if sleep is not None:
                 rec = min(99.0, max(1.0, -18.4 + 46.3 * hrv_c + 18.9 * rhr_c + 0.52 * sleep))
-        out.append({"date": day, "need_h": need, "debt_in_h": debt, "sufficiency": suff, "consistency": cons,
+        out.append({"date": day, "need_h": need, "debt_in_h": debt, "nap_credit_h": credit,
+                    "sufficiency": suff, "consistency": cons,
                     "sleep_score": sleep, "hrv_comp": hrv_c, "rhr_comp": rhr_c, "baseline_nights": len(earlier),
                     "recovery": rec})
         if n.get("asleep_h") is not None:
@@ -312,9 +375,16 @@ def model_scores(nights, habitual_h):
     return out
 
 
+# WHOOP's export gives a nap's start and end and nothing else. Its credit came to this share of the
+# nap's length (the median of 22), which is what the time asleep in it would look like. The app needs no
+# such figure: it measures a nap's time asleep itself.
+NAP_ASLEEP_SHARE = 0.93
+
+
 def as_model_night(row):
     return {"date": row["date"], "asleep_h": row["asleep_h"], "eff": row["eff"], "interval": clock_interval(row),
-            "hrv": row.get("hrv"), "rhr": row.get("rhr")}
+            "hrv": row.get("hrv"), "rhr": row.get("rhr"),
+            "naps": [{"interval": (a, b), "asleep_h": NAP_ASLEEP_SHARE * (b - a) / 60.0} for a, b in nap_intervals(row)]}
 
 
 def _mae(a, b):
@@ -322,7 +392,7 @@ def _mae(a, b):
 
 
 def report_model(rows):
-    """How WHOOP built need, debt and consistency, and how the app's model does end to end."""
+    """How WHOOP built need, debt, nap credit and consistency, and how the app's model does end to end."""
     by = {r["date"]: r for r in rows}
     prev = lambda r: by.get(r["date"] - timedelta(days=1))
 
@@ -341,43 +411,106 @@ def report_model(rows):
     curve = [0.0004 * a ** 2.7 for a, _ in pts]
     print(f"  follows the PREVIOUS day's strain (r {corr:+.2f}, n {n}); 0.0004 x strain^2.7 hours fits to "
           f"{60 * _mae(curve, [b for _, b in pts]):.1f} min")
-    naps = [r["nap_credit_h"] for r in rows if r["nap_credit_h"] > 0.01]
-    print(f"  nap credit on {len(naps)} of {len(rows)} nights")
+
+    print("Nap credit")
+    credited = [r for r in rows if r["nap_credit_h"] > 0.01]
+    napped = [r for r in rows if r["naps"]]
+    both = [r for r in credited if r["naps"]]
+    span = lambda r: sum((b - a).total_seconds() for a, b in r["naps"]) / 3600.0
+    print(f"  on {len(credited)} of {len(rows)} nights. A nap in the cycle before on {len(napped)}; "
+          f"the same nights on {len(both)}. Lowest need after credit {min(r['need_h'] for r in credited):.1f} h")
+    if both:
+        shares = sorted(r["nap_credit_h"] / span(r) for r in both)
+        left_out = [abs(st.median(x["nap_credit_h"] / span(x) for x in both if x is not r) * span(r) - r["nap_credit_h"])
+                    for r in both]
+        print(f"  credit as a share of the nap's length: {shares[0]:.2f} to {shares[-1]:.2f}, median "
+              f"{st.median(shares):.2f}. {NAP_ASLEEP_SHARE} x length gives the credit to "
+              f"{60 * st.mean(abs(NAP_ASLEEP_SHARE * span(r) - r['nap_credit_h']) for r in both):.0f} min on average "
+              f"({60 * st.mean(left_out):.0f} min with the share taken from the other nights each time)")
+        print(f"  debt left after such a night follows the reduced need: mean error "
+              f"{60 * _mae([debt_after(r['need_h'] - r['asleep_h']) for r in both], [r['debt_post_h'] for r in both]):.0f} min")
+    # Does the credit explain the sleep score? Fit on the nights without a nap, then judge the nap nights.
+    scored_nights = [r for r in rows if r.get("consistency") is not None]
+    plain = [r for r in scored_nights if r["nap_credit_h"] <= 0.01]
+    held = [r for r in scored_nights if r["nap_credit_h"] > 0.01]
+    for label, need in (("the credit taken off the need", lambda r: r["need_h"]),
+                        ("the credit put back", lambda r: r["need_h"] + r["nap_credit_h"])):
+        x = lambda r: [min(1.0, r["asleep_h"] / need(r)) * 100, r["eff"], r["consistency"]]
+        f = fit([x(r) for r in plain], [r["sleep_score"] for r in plain])
+        res = [predict(f["beta"], x(r)) - r["sleep_score"] for r in held]
+        print(f"  sleep score formula fitted on the {len(plain)} nights without a nap, run on the {len(held)} with one, "
+              f"{label}: mean error {st.mean(abs(v) for v in res):.1f} points (bias {st.mean(res):+.1f})")
 
     print("Consistency")
-    have = [r for r in rows if r.get("consistency") is not None]
-    xs, ys = [], []
-    for r in have:
-        ps = [by.get(r["date"] - timedelta(days=k)) for k in range(1, CONSISTENCY_NIGHTS + 1)]
-        if all(ps):
-            xs.append(st.mean(same_state_share(clock_interval(r), clock_interval(p)) for p in ps))
-            ys.append(r["consistency"])
-    f = fit([[x] for x in xs], ys)
-    corr, n = pearson(xs, ys)
-    print(f"  ~ {f['beta'][0]:.1f} + {f['beta'][1]:.1f} x (share of the day in the same state as each of the "
-          f"previous {CONSISTENCY_NIGHTS} nights): r {corr:+.2f}, mean error {f['mae']:.1f} points (n {n})")
+    pattern = lambda r, naps: [clock_interval(r)] + (nap_intervals(r) if naps else [])
+    for naps, label in ((True, "naps counted as asleep"), (False, "the night alone")):
+        xs, ys, after_nap = [], [], []
+        for r in scored_nights:
+            ps = [by.get(r["date"] - timedelta(days=k)) for k in range(1, CONSISTENCY_NIGHTS + 1)]
+            if all(ps):
+                xs.append(st.mean(same_state_share(pattern(r, naps), pattern(p, naps)) for p in ps))
+                ys.append(r["consistency"])
+                after_nap.append(bool(r["naps"]))
+        f = fit([[x] for x in xs], ys)
+        corr, n = pearson(xs, ys)
+        errs = [abs(predict(f["beta"], [x]) - y) for x, y in zip(xs, ys)]
+        nap_errs = [e for e, t in zip(errs, after_nap) if t]
+        print(f"  {label}: ~ {f['beta'][0]:.1f} + {f['beta'][1]:.1f} x (share of the day in the same state as each "
+              f"of the previous {CONSISTENCY_NIGHTS} nights): r {corr:+.2f}, mean error {f['mae']:.1f} points "
+              f"(n {n}); on the {len(nap_errs)} nights after a nap {st.mean(nap_errs):.1f}")
 
-    print("The app's model, end to end (inputs: time asleep, efficiency, bed and wake times, HRV, resting HR)")
+    print("The app's model, end to end (inputs: time asleep, efficiency, bed and wake times, HRV, resting HR, naps)")
     habitual = st.median(r["habitual_h"] for r in rows)
-    scored = {m["date"]: m for m in model_scores([as_model_night(r) for r in rows], habitual)}
-    need_err = _mae([scored[r["date"]]["need_h"] for r in rows], [r["need_h"] for r in rows])
-    print(f"  sleep need (habitual + debt only): mean error {60 * need_err:.0f} min")
-    ss = [(scored[r["date"]]["sleep_score"], r["sleep_score"]) for r in rows if scored[r["date"]]["sleep_score"] is not None]
-    corr, n = pearson([a for a, _ in ss], [b for _, b in ss])
-    print(f"  sleep score: mean error {_mae([a for a, _ in ss], [b for _, b in ss]):.1f} points, r {corr:+.2f} (n {n})")
-    rc = [(scored[r["date"]]["recovery"], r["recovery"]) for r in rows
-          if r.get("recovery") is not None and scored[r["date"]]["recovery"] is not None]
     band = lambda v: 2 if v >= 67 else 1 if v >= 34 else 0
-    corr, n = pearson([a for a, _ in rc], [b for _, b in rc])
-    mean_rec = st.mean(b for _, b in rc)
-    print(f"  recovery: mean error {_mae([a for a, _ in rc], [b for _, b in rc]):.1f} points, r {corr:+.2f}, "
-          f"same colour band {100 * st.mean(band(a) == band(b) for a, b in rc):.0f}%, "
-          f"two bands apart {100 * st.mean(abs(band(a) - band(b)) == 2 for a, b in rc):.0f}% (n {n})")
+    all_days = {r["date"] for r in rows}
+    nap_days = {r["date"] for r in rows if r["naps"]}
+    next_days = ({d + timedelta(days=1) for d in nap_days} - nap_days) & all_days
+
+    def run(credit=True, in_consistency=True):
+        """The model with each half of what a nap does switched on or off."""
+        nights = [as_model_night(r) for r in rows]
+        for night in nights:
+            night["naps"] = [{"interval": nap["interval"] if in_consistency else (0.0, 0.0),
+                              "asleep_h": nap["asleep_h"] if credit else 0.0} for nap in night["naps"]]
+        scored = {m["date"]: m for m in model_scores(nights, habitual)}
+        sleep = [(scored[r["date"]]["sleep_score"], r["sleep_score"], r["date"]) for r in rows
+                 if scored[r["date"]]["sleep_score"] is not None]
+        rec = [(scored[r["date"]]["recovery"], r["recovery"], r["date"]) for r in rows
+               if r.get("recovery") is not None and scored[r["date"]]["recovery"] is not None]
+        need = [(scored[r["date"]]["need_h"], r["need_h"], r["date"]) for r in rows]
+        return need, sleep, rec
+
+    err = lambda triples, days=None: st.mean(abs(a - b) for a, b, d in triples if days is None or d in days)
+    need, sleep, rec = run()
+    print(f"  sleep need (habitual + debt - nap credit): mean error {60 * err(need):.0f} min")
+    corr, n = pearson([a for a, _, _ in sleep], [b for _, b, _ in sleep])
+    print(f"  sleep score: mean error {err(sleep):.1f} points, r {corr:+.2f} (n {n})")
+    corr, n = pearson([a for a, _, _ in rec], [b for _, b, _ in rec])
+    mean_rec = st.mean(b for _, b, _ in rec)
+    print(f"  recovery: mean error {err(rec):.1f} points, r {corr:+.2f}, "
+          f"same colour band {100 * st.mean(band(a) == band(b) for a, b, _ in rec):.0f}%, "
+          f"two bands apart {100 * st.mean(abs(band(a) - band(b)) == 2 for a, b, _ in rec):.0f}% (n {n})")
     print(f"  for scale, always guessing the average recovery: mean error "
-          f"{_mae([mean_rec] * len(rc), [b for _, b in rc]):.1f} points")
-    late = rc[int(len(rc) * 0.6):]
-    print(f"  on the last 40% of nights only: mean error {_mae([a for a, _ in late], [b for _, b in late]):.1f} "
-          f"points, same band {100 * st.mean(band(a) == band(b) for a, b in late):.0f}% (n {len(late)})")
+          f"{st.mean(abs(mean_rec - b) for _, b, _ in rec):.1f} points")
+    late = rec[int(len(rec) * 0.6):]
+    print(f"  on the last 40% of nights only: mean error {err(late):.1f} "
+          f"points, same band {100 * st.mean(band(a) == band(b) for a, b, _ in late):.0f}% (n {len(late)})")
+    old_need, old_sleep, old_rec = run(credit=False, in_consistency=False)
+    others = all_days - nap_days - next_days
+    for label, days in ((f"the {len(nap_days)} nights after a nap", nap_days),
+                        (f"the {len(next_days)} nights after those", next_days),
+                        (f"the other {len(others)} nights", others)):
+        print(f"  {label}: need {60 * err(need, days):.0f} min, sleep score {err(sleep, days):.1f}, "
+              f"recovery {err(rec, days):.1f}; with the naps left out {60 * err(old_need, days):.0f} min, "
+              f"{err(old_sleep, days):.1f}, {err(old_rec, days):.1f}")
+    print(f"  all nights with the naps left out: need {60 * err(old_need):.0f} min, sleep score {err(old_sleep):.1f}, "
+          f"recovery {err(old_rec):.1f}")
+    bias = lambda triples, days: st.mean(a - b for a, b, d in triples if d in days)
+    for label, kwargs in (("the credit alone", {"in_consistency": False}), ("naps in consistency alone", {"credit": False})):
+        _, half, _ = run(**kwargs)
+        print(f"  {label}: sleep score on the nights after a nap {err(half, nap_days):.1f} (bias {bias(half, nap_days):+.1f})")
+    print(f"  both: {err(sleep, nap_days):.1f} (bias {bias(sleep, nap_days):+.1f}); neither: {err(old_sleep, nap_days):.1f} "
+          f"(bias {bias(old_sleep, nap_days):+.1f})")
 
 
 def export_nights(rows, path):
@@ -387,12 +520,14 @@ def export_nights(rows, path):
     with open(path, "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["date", "asleep_min", "efficiency_pct", "bed_minute", "wake_minute", "hrv_ms", "resting_hr",
-                    "habitual_need_min", "whoop_sleep_score", "whoop_recovery"])
+                    "habitual_need_min", "whoop_sleep_score", "whoop_recovery", "naps"])
         for r in rows:
             bed, wake = clock_interval(r)
             g = lambda k: "" if r.get(k) is None else r[k]
+            # Each nap before the night as start:end:asleep, in minutes, the first two from the night's midnight.
+            naps = "|".join(f"{a:.3f}:{b:.3f}:{NAP_ASLEEP_SHARE * (b - a):.3f}" for a, b in nap_intervals(r))
             w.writerow([r["date"], round(r["asleep_h"] * 60, 3), round(r["eff"], 3), round(bed, 3), round(wake, 3),
-                        g("hrv"), g("rhr"), round(r["habitual_h"] * 60, 3), g("sleep_score"), g("recovery")])
+                        g("hrv"), g("rhr"), round(r["habitual_h"] * 60, 3), g("sleep_score"), g("recovery"), naps])
     print(f"Wrote {len(rows)} nights to {path} (health data: keep it out of git)")
 
 

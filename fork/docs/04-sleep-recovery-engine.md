@@ -160,7 +160,8 @@ The strap was worn round the clock for the first time. One long sleep.
 - **The sparse-motion path was still taken** (`stagingSparse`), although the strap had been on all
   day. Within the analysis window there was still a gap of an hour in the afternoon.
 - **The WHOOP-style sleep need was too high.** It carried debt from the night before, which the app
-  had counted as the short night alone. The afternoon sleep before it earned no credit.
+  had counted as the short night alone. The afternoon sleep before it earned no credit. Other sleeps
+  count since later that day: see rule 7 below.
 
 **Against the Garmin's sleep page for this night** (captured the same afternoon), the app's night
 from the strap's state, as first built (only state 2 counted as asleep):
@@ -239,8 +240,10 @@ The app no longer takes sleep from the core. It reads the strap's state itself. 
    most an hour earlier, and ends where the sleep does.
 7. **The night for a day** is the sleep whose time in bed overlaps that day's night window most. The
    window runs from 21:00 the evening before to noon. A sleep wholly between noon and 21:00 is never a
-   night. **Every other sleep is listed** with the next night that follows it within a day, and does
-   not count towards any score yet.
+   night. **Every other sleep is listed** with the next night that follows it within a day, and
+   counts for that night: its time asleep comes off what the night needed, and it is time asleep when
+   the day is compared with earlier ones for consistency. Both come from how WHOOP treated naps
+   ([05-whoop-scoring-model.md](05-whoop-scoring-model.md)).
 8. **HRV** is the mean of five-minute RMSSD windows over the stretches, and **resting heart rate** the
    lowest five-minute mean, both by the core's own functions (`SleepStager.sessionHrvWindows`,
    `sessionHrvOverCounted`, `sessionRestingHR`) called on the strap's bounds. HRV needs six usable

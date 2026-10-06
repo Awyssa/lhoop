@@ -24,15 +24,22 @@ ALLOWED = (APP, "documentsui", "permissioncontroller")
 
 
 def dump():
+    # Remove the last dump first: when a dump fails (the screen is mid-animation), reading the file would
+    # otherwise return the previous screen, which may be another app's.
+    subprocess.run([ADB, "shell", "rm", "-f", "/sdcard/ui.xml"], capture_output=True)
     subprocess.run([ADB, "shell", "uiautomator", "dump", "/sdcard/ui.xml"], capture_output=True)
-    return subprocess.run([ADB, "shell", "cat", "/sdcard/ui.xml"], capture_output=True, text=True).stdout
+    out = subprocess.run([ADB, "shell", "cat", "/sdcard/ui.xml"], capture_output=True, text=True)
+    return out.stdout if out.returncode == 0 else ""
 
 
 def nodes(xml):
     out = []
     for m in re.finditer(r"<node [^>]*>", xml):
         n = m.group(0)
-        get = lambda k: html.unescape((re.search(k + r'="([^"]*)"', n) or [None, ""])[1])
+        # uiautomator writes an attribute in single quotes when its value holds a double quote.
+        def get(k):
+            m = re.search(r'\s' + k + r'=(?:"([^"]*)"|\'([^\']*)\')', n)
+            return html.unescape(m.group(1) if m.group(1) is not None else m.group(2)) if m else ""
         b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
         if not b:
             continue

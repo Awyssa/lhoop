@@ -59,13 +59,17 @@ One file-format tag was shortened rather than renamed, to keep its header the sa
 
 The phone is where real loss can happen: it holds every recorded night, and a bad build costs nights.
 
-- **The phone's recorder is still the last build made before the rename**, unless the runbook says the
-  move is finished. It has the package name the app had then, and all the data.
-- **A build of this code is a different app to Android** (`com.lhoop.whoop.staging`). It is installed
-  on the phone beside the old app since 2026-10-06 and starts empty. Nothing moves the data by itself:
-  it comes across through Export backup in the old app and Import backup in this one. Two apps must
-  not both hold the strap. The steps and where they stand are under "Moving to the renamed app" in
+- **The phone runs LHOOP** (`com.lhoop.whoop.staging`) since the evening of 2026-10-06. It holds every
+  recorded night and it is the app connected to the strap. A build of this code installs over it when
+  it is signed with the same key.
+- **The app it replaced is still installed, and stopped.** It is the last build made before the rename.
+  To Android it is a different app, with the package name the app had then and its own copy of the data
+  up to the move. Do not open it: it reconnects to the strap by itself, and two apps must not both hold
+  the strap. Do not remove it either: that is the owner's call. How the data came across, and what was
+  checked, is under "Moving to the renamed app" in
   [`fork/docs/08-runbook.md`](fork/docs/08-runbook.md).
+- **Rows LHOOP has synced exist only in LHOOP.** There is no tested way to carry them back into the old
+  app, so a fault is fixed by installing a better build over LHOOP, not by going back.
 - Before installing any build: export a backup from the running app, keep the last good APK to roll
   back to, and never uninstall to fix something (uninstalling wipes all data).
 

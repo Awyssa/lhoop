@@ -137,6 +137,29 @@ class NightsTest {
         assertNull(without.hrvMs)
         assertNull(without.restingHr)
         assertEquals(435.0, without.asleepMin!!, 1e-9)
+        assertTrue(input.naps.isEmpty())
+    }
+
+    @Test
+    fun theSleepsBeforeANightGoWithItCountedFromTheNightsOwnMidnight() {
+        val r = record(bed = ts(2026, 10, 2, 23, 30), start = ts(2026, 10, 2, 23, 45), end = ts(2026, 10, 3, 7, 15) - 1)
+        // In bed 14:00 the afternoon before, asleep 14:10 to 15:30 with ten minutes of it awake.
+        val nap = record(bed = ts(2026, 10, 2, 14, 0), start = ts(2026, 10, 2, 14, 10), end = ts(2026, 10, 2, 15, 30) - 1, awakeSec = 600)
+        val input = Nights.input(Night("2026-10-03", r, naps = listOf(nap), core = null))!!
+        val only = input.naps.single()
+        assertEquals(-600.0, only.startMinute, 1e-9)
+        assertEquals(-510.0, only.endMinute, 1.0 / 60 + 1e-9)
+        assertEquals(70.0, only.asleepMin, 1e-9)
+    }
+
+    @Test
+    fun theNoteUnderOtherSleepsSaysWhatEachKindDoes() {
+        assertEquals("An earlier sleep takes its time asleep off what this night needed.", Nights.otherSleepsNote(earlier = true, since = false))
+        assertEquals("A sleep since will do the same for tonight.", Nights.otherSleepsNote(earlier = false, since = true))
+        assertEquals(
+            "An earlier sleep takes its time asleep off what this night needed. A sleep since will do the same for tonight.",
+            Nights.otherSleepsNote(earlier = true, since = true),
+        )
     }
 
     @Test

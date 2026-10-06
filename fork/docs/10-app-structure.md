@@ -98,7 +98,8 @@ the core starts whichever tab is showing).
 - **Last night** (`LastNightScreen.kt`, `Nights.kt`, `NightsViewModel.kt`). From top to bottom: the
   app's own recovery; time asleep, HRV and resting heart rate; the sleep as the strap flagged it (time
   in bed, asleep and how much of that was restless, awake in between, efficiency, HRV over the last
-  three hours, and any other sleeps around it); what the scores were built from, with the usual-sleep-need setting; the
+  three hours, and any other sleeps around it); what the scores were built from (the sleep needed, the
+  debt in it, and what earlier sleep took off it), with the usual-sleep-need setting; the
   core's own figures for the same day; and the seven most recent nights. A missing value is a dash.
   "Last night" is the newest night, as long as it belongs to today by the core's clock (the day rolls
   over at 04:00). Otherwise the screen shows the newest night there is and says so.

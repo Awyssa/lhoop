@@ -26,6 +26,10 @@ Status on 2026-10-06, after the third night. Tick items as they land.
 - [x] Decide what the strap's "up" state is worth: it counts as sleep, bar the strap's wake
       confirmation. On the phone since the second build of 2026-10-06.
 - [x] First comparison with the Garmin's sleep page, and the owner's account of the first two nights.
+- [x] Count the other sleeps. Fitted from the 22 nights in the history that follow a nap: a nap's time
+      asleep comes off the need of the night after it, and the nap counts as time asleep when days are
+      compared for consistency. Built on 2026-10-06; not on the phone until the next install
+      ([05-whoop-scoring-model.md](05-whoop-scoring-model.md)).
 
 ## Next: check the new nights against the references
 
@@ -44,8 +48,9 @@ That is a good start, not a result.
    eight minutes each, by the Garmin, on two spells).
 3. **Keep asking on odd days.** Where the Garmin and the strap disagree, the owner's account is the
    reference. One such evening so far, and the strap was right.
-4. **Count the other sleeps.** A sleep in the afternoon earns nothing today, so the sleep need the
-   night after is too high. Fit WHOOP's nap credit from the history (22 nights have one), then add it.
+4. **Watch the first real nap day under the new rule.** It was fitted on WHOOP's naps. The app decides
+   for itself what is a nap, and measures a nap's time asleep where WHOOP's export gave only its
+   length.
 5. **The need after a hard day,** and which HRV figure the scores should use (whole night, or the last
    hours).
 6. **A second look at the night rule** once there are odd nights to test it on: a split night, a very
@@ -59,10 +64,11 @@ That is a good start, not a result.
    score from hours against need, efficiency and consistency, and recovery from HRV and resting heart
    rate against the last 8 nights. On the WHOOP history it is within 7.8 points of WHOOP's recovery.
    It now leads the screen, labelled experimental, and runs on the strap's own nights. The first
-   recovery needs three earlier nights. Still to add: need after a hard day, and credit for other sleeps.
+   recovery needs three earlier nights. Other sleeps count since 2026-10-06. Still to add: need after
+   a hard day.
 6. **A night-replay harness** on the Mac. Started: `StrapSleepBackupCheckTest` replays the app's sleep
-   finding over a backup. Still to add: the scores, and a reference printed beside them
-   ([06-validation-plan.md](06-validation-plan.md)).
+   finding over a backup and, since 2026-10-06, scores the nights as the screen does. Still to add: a
+   reference printed beside them ([06-validation-plan.md](06-validation-plan.md)).
 7. **Better inputs:** HRV window selection, and whether the resting heart rate should be the mean over
    the sleep instead of the lowest five minutes.
 8. **Settings the app needs:** background connection, continuous HRV capture, the body profile. Today
@@ -77,9 +83,10 @@ That is a good start, not a result.
       owner's call: he makes the commits.
 - [ ] Decide where the signing key lives. `android/fork-debug.keystore` is on the owner's Mac only; a
       build without it is signed with another key and cannot be installed over the app.
-- [ ] Move the phone to the renamed app. The Import backup button is built and the restore was
-      rehearsed in the emulator with a real backup; LHOOP is installed on the phone beside the old app.
-      Left to do: the move itself, in [08-runbook.md](08-runbook.md). Until then the old app records.
+- [x] Move the phone to the renamed app. Done on 2026-10-06 through a backup: the old app exported,
+      LHOOP imported, then connected to the strap. Nothing was lost. See [08-runbook.md](08-runbook.md).
+- [ ] After the move: LHOOP's battery usage set to Unrestricted, a first full night recorded under it,
+      then the old app removed (the owner's call: removing it deletes its copy of the data).
 - [ ] Watch upstream for Bluetooth fixes worth applying by hand. They can no longer be merged.
 - [ ] Choose the Garmin data route ([06-validation-plan.md](06-validation-plan.md)). For now:
       `fork/tools/capture_garmin.sh`, which reads the sleep page off the phone's screen.

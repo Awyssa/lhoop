@@ -31,12 +31,24 @@ if "$ADB" shell dumpsys trust | grep -q 'deviceLocked=1'; then
 fi
 
 tap() {  # tap the first element whose label matches $1; $2 = "bottom" picks one in the navigation bar
+  # The screen can still be drawing just after a launch or a tap, so look for up to twelve seconds. Only a
+  # line that starts with two numbers is a place to tap: the reader also prints notices in words.
   local xy
-  if [ "${2:-}" = bottom ]; then xy="$(python3 "$UI" "$1" | awk '$2 > 2000 {print $1, $2}' | head -1)"
-  else xy="$(python3 "$UI" "$1" | head -1 | awk '{print $1, $2}')"; fi
-  [ -n "$xy" ] || { echo "Could not find '$1' on screen." >&2; exit 1; }
-  # shellcheck disable=SC2086
-  "$ADB" shell input tap $xy
+  for _ in 1 2 3 4 5 6; do
+    if [ "${2:-}" = bottom ]; then
+      xy="$(python3 "$UI" "$1" | awk '$1 ~ /^[0-9]+$/ && $2 + 0 > 2000 {print $1, $2}' | head -1 || true)"
+    else
+      xy="$(python3 "$UI" "$1" | awk '$1 ~ /^[0-9]+$/ {print $1, $2}' | head -1 || true)"
+    fi
+    if [[ "$xy" =~ ^[0-9]+\ [0-9]+$ ]]; then
+      # shellcheck disable=SC2086
+      "$ADB" shell input tap $xy
+      return 0
+    fi
+    sleep 2
+  done
+  echo "Could not find '$1' on screen." >&2
+  exit 1
 }
 
 "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
