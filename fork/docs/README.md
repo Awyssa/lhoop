@@ -32,8 +32,9 @@ Rules for the code itself are in [`AGENTS.md`](../../AGENTS.md). These notes are
   status), nights built from the strap's own sleep state and the app's own WHOOP-style scores. It
   builds an APK and passes the unit tests. See [10-app-structure.md](10-app-structure.md).
 - **Phone:** a Pixel 9a (Android 17), with the WHOOP 5.0 fully paired, still runs the last build made
-  before the rename (the second build of 6 October), under the old package name. A build of the renamed code
-  is a different app to Android and would start empty beside it. Moving across is not built yet: see
+  before the rename (the second build of 6 October), under the old package name. LHOOP is installed
+  beside it since that evening, empty and not yet connected: to Android it is a different app. Moving
+  the data and the strap across is prepared and rehearsed but not done: see
   [08-runbook.md](08-runbook.md).
 - **WHOOP history:** 240 nights (2025-08-02 to 2026-06-29) are saved locally and analysed.
 - **Nights so far:** three recorded (3, 4 and 5 October), each complete, and all three analysed. The

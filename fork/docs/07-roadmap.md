@@ -77,9 +77,9 @@ That is a good start, not a result.
       owner's call: he makes the commits.
 - [ ] Decide where the signing key lives. `android/fork-debug.keystore` is on the owner's Mac only; a
       build without it is signed with another key and cannot be installed over the app.
-- [ ] Move the phone to the renamed app: an Import backup button, tried in the emulator, then the
-      steps in [08-runbook.md](08-runbook.md). Until then the phone runs the build from before the
-      rename.
+- [ ] Move the phone to the renamed app. The Import backup button is built and the restore was
+      rehearsed in the emulator with a real backup; LHOOP is installed on the phone beside the old app.
+      Left to do: the move itself, in [08-runbook.md](08-runbook.md). Until then the old app records.
 - [ ] Watch upstream for Bluetooth fixes worth applying by hand. They can no longer be merged.
 - [ ] Choose the Garmin data route ([06-validation-plan.md](06-validation-plan.md)). For now:
       `fork/tools/capture_garmin.sh`, which reads the sleep page off the phone's screen.

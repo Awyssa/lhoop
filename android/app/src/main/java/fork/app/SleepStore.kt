@@ -95,6 +95,9 @@ internal class SleepStore(private val file: File) {
     }
 
     companion object {
+        /** Where the store lives, inside the app's own files folder. */
+        fun fileIn(filesDir: File): File = File(filesDir, "fork/sleeps.json")
+
         /**
          * The version of the rules the records were worked out under: how sleeps are found
          * (scoring/StrapSleep.kt) and how their heart figures are computed (scoring/SleepVitalsCalc.kt).

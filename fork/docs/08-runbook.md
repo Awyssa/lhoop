@@ -5,8 +5,8 @@ How to do the recurring things. Commands run from the repository root unless sta
 **The app was renamed LHOOP on 2026-10-06, and that changed what a build is to the phone.** Read this
 first:
 
-- **What this code builds** installs as `com.lhoop.whoop.staging`, labelled LHOOP. No build of it has
-  been installed anywhere.
+- **What this code builds** installs as `com.lhoop.whoop.staging`, labelled LHOOP. It is installed on
+  the phone beside the old app since 2026-10-06, and is not in use yet.
 - **What the phone runs** is the last build made before the rename (the second build of 6 October),
   under the package name the app had then. It holds every recorded night.
 - **To Android these are two different apps.** Installing a build of this code does not replace the
@@ -28,23 +28,40 @@ The APK is `android/app/build/outputs/apk/full/release/app-full-release.apk`.
 
 ## Moving to the renamed app
 
-Not done, and not to be done casually: the old app is the one recording.
+**Started on 2026-10-06, not finished.** Where it stands:
 
-1. Export a backup from the old app and pull it to the Mac (`APP_PACKAGE=<the old package name>
-   fork/tools/pull_night.sh`).
-2. The renamed app needs a way to restore it. The core has one (`DataBackup.importFrom`), and it accepts
-   a backup written under the old name: `BackupRestoreNamesTest` stages every backup pulled so far. But
-   **there is no Import button yet**; the screen that had one was cut. That button has to be built and
-   tried in the emulator first.
-3. Two apps must not both hold the strap. Disconnect the old one (its Strap tab) before the new one
-   connects, and expect to tap Connect in the new one: the saved strap address lives in the app's
-   settings, which a backup does not carry under the new names.
-4. Check a night in the new app against `fork/tools/night_report.py` before removing the old app.
-   Removing an app deletes its data.
+- LHOOP has an **Import backup** button (Strap tab). It calls the core's own restore and then closes
+  the app, which has to be opened again.
+- The whole restore was rehearsed in the emulator with a real backup made by the old app: a fresh
+  LHOOP restored it, the core scored the days again, and the Last night tab showed the same nights and
+  figures as the old app on the phone.
+- LHOOP is installed on the phone beside the old app (18:54). It has no permissions yet, no data, and
+  has never connected to the strap. The old app is still the one recording.
 
-What a restore will not carry: the old app's settings (their names changed), and the days the core had
-already scored (they are stored under an id that ended in the old name; the core scores recent days
-again from the raw rows).
+The move, in order. The phone has to stay unlocked throughout; it takes about four minutes.
+
+1. **Old app:** open it, wait for its sync to finish, tap **Disconnect**. It must read "not connected".
+2. **Old app:** **Export backup**, save into Downloads, pull the file to the Mac and check it
+   (`PRAGMA integrity_check`, newest row a few minutes old).
+3. **Stop the old app** (`adb shell am force-stop <the old package name>`). Its data stays. Do not open
+   it again while LHOOP holds the strap: it reconnects by itself when opened, and two apps must not
+   both hold the strap.
+4. **LHOOP:** open it and allow the two permissions it asks for (nearby devices, notifications).
+5. **LHOOP:** Strap tab → **Import backup** → Choose the file → the export from step 2. It says
+   "Backup restored" and closes. Open it again: the Last night tab shows the nights.
+6. **LHOOP:** Strap tab → **Connect**. A fresh install does not know the strap is a 5.0, so it looks
+   for a WHOOP 4 first and switches to the 5/MG family after eight seconds. Expect "connected" and
+   "Bonded: yes" within a minute, then a sync.
+7. Set LHOOP's battery usage to **Unrestricted** (Settings → Apps → LHOOP → App battery usage).
+8. Compare a night in LHOOP with `fork/tools/night_report.py` before removing the old app. Removing an
+   app deletes its data.
+
+If step 6 fails, stop LHOOP and open the old app: it reconnects by itself. If neither can bond any more,
+the strap has to be put into pairing mode again (see "Pairing a WHOOP 5.0").
+
+What a restore does not carry: the old app's settings (their names changed, so LHOOP starts on the
+defaults), and the days the core had already scored (they are stored under an id that ended in the old
+name; the core scores recent days again from the raw rows, which the rehearsal showed).
 
 ## Install on the phone
 

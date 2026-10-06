@@ -59,12 +59,13 @@ One file-format tag was shortened rather than renamed, to keep its header the sa
 
 The phone is where real loss can happen: it holds every recorded night, and a bad build costs nights.
 
-- **The phone still runs the last build made before the rename.** It has the package name the app had
-  then, and all the data.
-- **A build of this code is a different app to Android** (`com.lhoop.whoop.staging`). Installing it
-  does not replace the app on the phone: it appears beside it, empty. Nothing moves the data by itself,
-  and two apps must not both hold the strap. The steps, and what is not built yet, are under "Moving to
-  the renamed app" in [`fork/docs/08-runbook.md`](fork/docs/08-runbook.md).
+- **The phone's recorder is still the last build made before the rename**, unless the runbook says the
+  move is finished. It has the package name the app had then, and all the data.
+- **A build of this code is a different app to Android** (`com.lhoop.whoop.staging`). It is installed
+  on the phone beside the old app since 2026-10-06 and starts empty. Nothing moves the data by itself:
+  it comes across through Export backup in the old app and Import backup in this one. Two apps must
+  not both hold the strap. The steps and where they stand are under "Moving to the renamed app" in
+  [`fork/docs/08-runbook.md`](fork/docs/08-runbook.md).
 - Before installing any build: export a backup from the running app, keep the last good APK to roll
   back to, and never uninstall to fix something (uninstalling wipes all data).
 

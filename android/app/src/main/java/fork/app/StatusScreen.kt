@@ -1,8 +1,9 @@
 // Fork-owned. The "Strap" tab: the foundation's own state and row counts, with Connect, Disconnect, Sync
-// now, Export backup and a Debug logging switch. Each control calls what upstream's UI called (commit
-// 6ce65730); the call sites are cited where they are used.
+// now, Export backup, Import backup and a Debug logging switch. Each control calls what upstream's UI
+// called (commit 6ce65730); the call sites are cited where they are used.
 package fork.app
 
+import android.app.Activity
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -16,10 +17,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,6 +72,9 @@ fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
     var counts by remember { mutableStateOf<Result<List<SignalCount>>?>(null) }
     var serviceRunning by remember { mutableStateOf(false) }
     var exportMessage by remember { mutableStateOf<String?>(null) }
+    var importMessage by remember { mutableStateOf<String?>(null) }
+    var confirmImport by remember { mutableStateOf(false) }
+    var importing by remember { mutableStateOf(false) }
     var debugLogging by remember { mutableStateOf(LhoopPrefs.debugLogging(context)) }
 
     // Row counts and the registry model: on entering the foreground, when a sync starts or ends, when the
@@ -130,6 +136,60 @@ fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
         }
     }
 
+    // Settings → Backup & restore → Import: the core's own restore, `DataBackup.importFrom`. It checks
+    // the file, swaps the database and then needs the process restarted, because every open handle points
+    // at the old one. The sleeps the app worked out are cleared with it: they are rebuilt from the
+    // restored rows. A backup written by this app under an earlier name restores too.
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                importing = true
+                importMessage = "Restoring the backup…"
+                val result = withContext(Dispatchers.IO) {
+                    runCatching { DataBackup.importFrom(context, uri) }
+                }
+                val restored = result.getOrNull() is DataBackup.ImportResult.NeedsRestart
+                importMessage = result.fold(
+                    onSuccess = { outcome ->
+                        when (outcome) {
+                            is DataBackup.ImportResult.NeedsRestart ->
+                                "Backup restored. The app is closing so it can start on the restored data. Open it again."
+                            is DataBackup.ImportResult.Failed -> "Nothing was restored: ${outcome.message}"
+                            is DataBackup.ImportResult.TooLarge -> "Nothing was restored: ${outcome.message}"
+                        }
+                    },
+                    onFailure = { e -> "Nothing was restored: ${e.message}" },
+                )
+                if (restored) {
+                    withContext(Dispatchers.IO) { runCatching { SleepStore.fileIn(context.filesDir).delete() } }
+                    delay(RESTART_NOTICE_MS)
+                    closeForRestart(context)
+                }
+                importing = false
+            }
+        }
+    }
+    if (confirmImport) {
+        AlertDialog(
+            onDismissRequest = { confirmImport = false },
+            title = { Text("Import a backup?") },
+            text = {
+                Text(
+                    "This replaces everything the app has stored on this phone with what is in the backup. " +
+                        "The app then closes; open it again afterwards.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmImport = false; importLauncher.launch(arrayOf("*/*")) }) {
+                    Text("Choose the file")
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmImport = false }) { Text("Cancel") } },
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -185,6 +245,15 @@ fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
             ) { Text("Export backup") }
         }
         exportMessage?.let { Text(it) }
+        // A restore swaps the database under the running app, so the strap link has to be down first.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { importMessage = null; confirmImport = true },
+                enabled = !live.connected && !live.scanning && !importing,
+            ) { Text("Import backup") }
+        }
+        if (live.connected) Text("Disconnect before importing a backup.", style = MaterialTheme.typography.bodySmall)
+        importMessage?.let { Text(it) }
 
         // Test Centre → "Debug logging", upstream ui/TestCentreScreen.kt 886-890.
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -212,6 +281,20 @@ private fun CountRow(label: String, day: String, week: String) {
         Text(day, modifier = Modifier.weight(0.22f))
         Text(week, modifier = Modifier.weight(0.22f))
     }
+}
+
+/** How long the "restored, closing" line stays up before the app closes. */
+private const val RESTART_NOTICE_MS = 2_500L
+
+/**
+ * Ends the process after a restore. The database file was replaced under the running app, so nothing in
+ * this process may go on using it; the next launch opens the restored one. The connection service is
+ * stopped first so Android has no reason to bring the old process state back.
+ */
+private fun closeForRestart(context: Context) {
+    runCatching { WhoopConnectionService.stop(context.applicationContext) }
+    (context as? Activity)?.finishAndRemoveTask()
+    android.os.Process.killProcess(android.os.Process.myPid())
 }
 
 /** `runCatching` that lets coroutine cancellation through, so a restarted refresh never reports a failure. */

@@ -27,7 +27,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
-import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -56,7 +55,7 @@ internal class NightsViewModel(app: Application) : AndroidViewModel(app) {
     private val sleeps = StrapSleepLoader(
         WhoopDatabase.get(app),
         repository,
-        SleepStore(File(app.filesDir, SLEEP_STORE_PATH)),
+        SleepStore(SleepStore.fileIn(app.filesDir)),
     )
 
     /** The registry's active strap id: the same expression upstream's screens read. */
@@ -154,10 +153,5 @@ internal class NightsViewModel(app: Application) : AndroidViewModel(app) {
         val computed = repository.metricSeriesComputedUnion(deviceId, Nights.SLEEP_SCORE_KEY, fromDay, toDay)
         val imported = repository.metricSeries(deviceId, Nights.SLEEP_SCORE_KEY, fromDay, toDay)
         return computed.associate { it.day to it.value } + imported.associate { it.day to it.value }
-    }
-
-    private companion object {
-        /** Inside the app's own files folder. See [SleepStore]. */
-        const val SLEEP_STORE_PATH = "fork/sleeps.json"
     }
 }

@@ -104,7 +104,9 @@ the core starts whichever tab is showing).
   over at 04:00). Otherwise the screen shows the newest night there is and says so.
 - **Strap** (`StatusScreen.kt`): connection, bond, model, firmware, battery, last sync, whether the
   service is running, and how many rows each signal has for the last 24 hours and 7 days. It has
-  Connect, Disconnect, Sync now, Export backup and a Debug logging switch.
+  Connect, Disconnect, Sync now, Export backup, Import backup and a Debug logging switch. Import backup
+  restores a backup through the core's `DataBackup.importFrom`, clears the app's own store of sleeps
+  so they are rebuilt from the restored rows, and closes the app; it is disabled while connected.
 
 ## Where a night comes from
 
