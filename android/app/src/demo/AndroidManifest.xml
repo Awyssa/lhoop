@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fork-owned manifest overlay. It merges over src/main/AndroidManifest.xml, which stays byte-identical
+  to upstream, and only REMOVES things the cut build no longer has code for.
+
+  There are two identical copies, one per flavor: src/full/ (the real app) and src/demo/ (synthetic
+  data, for running the UI in an emulator). Change both together; ManifestOverlayCopiesTest checks it.
+
+  Not touched here, on purpose: the Bluetooth permissions, ACCESS_FINE_LOCATION, FOREGROUND_SERVICE*,
+  POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, the
+  WhoopConnectionService declaration (including its foregroundServiceType), MainActivity and its launcher
+  aliases. A mistake there stops background recording.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- No network code is left in the app: the AI coach, self-hosted push and update check are gone. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+
+    <!-- Phone-call alerts (com.lhoop.notif.PhoneCallReceiver) are gone. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" tools:node="remove" />
+
+    <!-- AI coach voice input and reply haptics are gone. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <uses-permission android:name="android.permission.VIBRATE" tools:node="remove" />
+
+    <!-- The phone smart alarm (com.lhoop.alarm) is gone; its stand-in schedules nothing. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" tools:node="remove" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" tools:node="remove" />
+
+    <!-- The Health Connect importer and writer are gone; the writer's stand-in creates no client. -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE_VARIABILITY" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_RESPIRATORY_RATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.WRITE_RESTING_HEART_RATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.WRITE_HEART_RATE_VARIABILITY" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.WRITE_OXYGEN_SATURATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.WRITE_RESPIRATORY_RATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.WRITE_HEART_RATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.WRITE_SLEEP" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.WRITE_DISTANCE" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_VO2_MAX" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_WEIGHT" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_BODY_FAT" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_LEAN_BODY_MASS" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTES" tools:node="remove" />
+    <uses-permission android:name="android.permission.health.READ_HYDRATION" tools:node="remove" />
+
+    <!-- Package visibility nothing uses any more: the Health Connect provider and the official WHOOP
+         app (the deleted connection-help screen linked to it). The OEM security-centre packages stay:
+         the kept com.lhoop.ble.BackgroundHealth resolves them. -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" tools:node="remove" />
+        <package android:name="com.whoop.android" tools:node="remove" />
+    </queries>
+
+    <application>
+        <!-- Components whose class no longer exists in this build. -->
+        <service android:name="com.lhoop.notif.LhoopNotificationListener" tools:node="remove" />
+        <receiver android:name="com.lhoop.widget.LhoopWidgetReceiver" tools:node="remove" />
+        <receiver android:name="com.lhoop.widget.LhoopCompactWidgetReceiver" tools:node="remove" />
+        <receiver android:name="com.lhoop.widget.HrWidgetReceiver" tools:node="remove" />
+        <receiver android:name="com.lhoop.widget.StressWidgetReceiver" tools:node="remove" />
+        <receiver android:name="com.lhoop.widget.CoachBriefWidgetReceiver" tools:node="remove" />
+        <receiver android:name="com.lhoop.notif.PhoneCallReceiver" tools:node="remove" />
+        <receiver android:name="com.lhoop.alarm.SmartAlarmReceiver" tools:node="remove" />
+        <receiver android:name="com.lhoop.alarm.SmartAlarmBootReceiver" tools:node="remove" />
+        <receiver android:name="com.lhoop.alarm.WindDownReceiver" tools:node="remove" />
+    </application>
+
+</manifest>

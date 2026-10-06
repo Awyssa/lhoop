@@ -1,0 +1,77 @@
+# Paths that were removed from the original app's tree when this app was cut down to Android and
+# to the core. docs/protocol-examples/check_source_references.py skips references into them, so the
+# original project's documents can still be checked against the files that remain.
+# One path or prefix per line.
+
+# Apple apps, extensions and the Xcode project
+Strand/
+StrandTests/
+StrandiOS/
+StrandiOSShared/
+StrandiOSWidgets/
+LHOOPWatch/
+LHOOPWatchComplications/
+Strand.xcodeproj/
+project.yml
+Config/
+altstore-source.json
+
+# Swift packages. The Android app has its own Kotlin implementation of all of them; the protocol schema
+# the Android tests check against now lives at android/app/src/test/resources/whoop_protocol.json.
+Packages/
+
+# Swift tools and Apple packaging/release scripts
+Tools/SleepBench/
+Tools/SleepPSG/
+Tools/Backfill/
+Tools/anonymize-ios-app.sh
+Tools/anonymize-macos-app.sh
+Tools/prepare-ios-sideload-app.sh
+Tools/update-altstore-source.sh
+Tools/update-homebrew-cask.sh
+Tools/build-v7-artifacts.sh
+Tools/release.sh
+Tools/seed-string-catalog.py
+Tools/translate-de.py
+Tools/translate-it.py
+Tools/appchangelog-gen.py
+Tools/test_appchangelog_gen.py
+
+# Swift <-> Kotlin parity tooling (meaningless without the Swift side)
+Tools/PARITY_GOVERNANCE.md
+Tools/PARITY_HARNESS.md
+Tools/parity_*
+Tools/tests/test_parity_*
+
+# Translation audit hard-wired to the Apple string catalogues (Android translations stay in res/values-*)
+Tools/i18n/
+Tools/i18n_audit.py
+Tools/i18n_audit_baseline.json
+Tools/i18n_echo_baseline.txt
+Tools/i18n_extra_locale_baseline.txt
+Tools/test_i18n_audit.py
+Tools/test_home_i18n.py
+
+# CI for Apple builds, parity, the Apple-catalogue audit, and multi-platform releases
+.github/workflows/swift-packages.yml
+.github/workflows/app-build.yml
+.github/workflows/parity-governance.yml
+.github/workflows/i18n-coverage.yml
+.github/workflows/fork-release.yml
+.github/workflows/fork-testing-build.yml
+
+# Apple-only docs
+docs/IOS.md
+docs/HOMEBREW.md
+docs/LIBRARY.md
+docs/CROSS_PLATFORM.md
+docs/superpowers/plans/2026-06-27-oura-live-api-import-1-foundation.md
+docs/superpowers/plans/2026-06-27-oura-live-api-import-2-network-auth.md
+docs/superpowers/plans/2026-06-27-oura-live-api-import-3-orchestration-ui.md
+docs/superpowers/specs/2026-06-29-oura-onboarding-ux.md
+docs/superpowers/specs/2026-07-10-apple-health-highres-writeback-design.md
+
+# Not listed: the Android paths removed by the cut to the core (2026-10-03): the old UI, widgets, the AI
+# coach, the importers, Oura, push, the update check, notifications, alarms, location, the Test Centre
+# screens, Polar, and their tests. Several of those folders still hold files that were kept (for example
+# ui/Units.kt), so they cannot be listed as whole folders.
