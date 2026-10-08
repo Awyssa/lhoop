@@ -26,7 +26,7 @@ class SleepStoreTest {
             stretches = listOf(Stretch(1_600, 12_000, 10_000, 300), Stretch(15_000, 30_000, 15_000, 1_500)),
         ),
         offsetSec = 3_600,
-        vitals = SleepVitals(hrvMs = 31.25, lateHrvMs = 40.5, hrvWindows = 77, restingHr = 58),
+        vitals = SleepVitals(hrvMs = 31.25, lateHrvMs = 40.5, hrvWindows = 77, restingHr = 58, deepSec = 5_400, remSec = 4_200),
         dataThroughTs = 50_000,
     )
 

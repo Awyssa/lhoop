@@ -361,7 +361,7 @@ private suspend fun registryModel(lhoopApp: LhoopApplication, activeId: String):
  * the OS: `getRunningServices` is deprecated for other apps' services but still returns the caller's.
  */
 @Suppress("DEPRECATION")
-private fun connectionServiceRunning(context: Context): Boolean {
+internal fun connectionServiceRunning(context: Context): Boolean {
     val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return false
     return runCatching {
         manager.getRunningServices(Int.MAX_VALUE)

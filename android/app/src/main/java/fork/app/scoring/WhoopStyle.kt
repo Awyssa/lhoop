@@ -220,7 +220,7 @@ object WhoopStyle {
                 sleepScore(sufficiency, night.efficiencyPct, consistency ?: NEUTRAL_CONSISTENCY)
             } else null
 
-            val earlier = baselineFor(night, byDay)
+            val earlier = baselineFor(night.day, byDay)
             val enough = earlier.size >= MIN_BASELINE_NIGHTS && night.hrvMs != null && night.restingHr != null
             val hrvC = if (enough) hrvComponent(night.hrvMs!!, earlier.map { it.hrvMs!! }) else null
             val rhrC = if (enough) rhrComponent(night.restingHr!!, earlier.map { it.restingHr!! }) else null
@@ -267,11 +267,21 @@ object WhoopStyle {
         return listOf(bed to wake) + night.naps.map { it.startMinute to it.endMinute }
     }
 
+    /**
+     * The earlier nights that [day]'s HRV and resting heart rate are compared with, newest first: the
+     * same ones [score] uses, for a screen that shows where a night sits among them.
+     */
+    fun baselineNights(day: LocalDate, nights: List<NightInput>): List<NightInput> {
+        val byDay = LinkedHashMap<LocalDate, NightInput>()
+        nights.sortedBy { it.day }.forEach { byDay.putIfAbsent(it.day, it) }
+        return baselineFor(day, byDay)
+    }
+
     /** Up to [BASELINE_NIGHTS] of the most recent earlier nights that have both HRV and resting heart rate. */
-    private fun baselineFor(night: NightInput, byDay: Map<LocalDate, NightInput>): List<NightInput> {
+    private fun baselineFor(day: LocalDate, byDay: Map<LocalDate, NightInput>): List<NightInput> {
         val found = ArrayList<NightInput>(BASELINE_NIGHTS)
         for (back in 1L..BASELINE_WINDOW_DAYS) {
-            val p = byDay[night.day.minusDays(back)] ?: continue
+            val p = byDay[day.minusDays(back)] ?: continue
             if (p.hrvMs != null && p.hrvMs > 0.0 && p.restingHr != null) found += p
             if (found.size == BASELINE_NIGHTS) break
         }

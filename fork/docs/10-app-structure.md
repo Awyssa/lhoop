@@ -92,17 +92,32 @@ Everything else the UI layer sent or configured is reproduced.
 
 ## The screens
 
-`fork/app/AppRoot.kt` holds the theme, two tabs, and the place the driver is created (above the tabs, so
-the core starts whichever tab is showing).
+`fork/app/AppRoot.kt` holds three tabs, the night opened over them, and the place the driver is created
+(above the tabs, so the core starts whichever tab is showing). The look is one dark palette in
+`Theme.kt`, whatever the phone's setting. The screens were redrawn on 2026-10-06 from three drafts the
+owner chose; before that there was one long screen of rows.
 
-- **Last night** (`LastNightScreen.kt`, `Nights.kt`, `NightsViewModel.kt`). From top to bottom: the
-  app's own recovery; time asleep, HRV and resting heart rate; the sleep as the strap flagged it (time
-  in bed, asleep and how much of that was restless, awake in between, efficiency, HRV over the last
-  three hours, and any other sleeps around it); what the scores were built from (the sleep needed, the
-  debt in it, and what earlier sleep took off it), with the usual-sleep-need setting; the
-  core's own figures for the same day; and the seven most recent nights. A missing value is a dash.
-  "Last night" is the newest night, as long as it belongs to today by the core's clock (the day rolls
-  over at 04:00). Otherwise the screen shows the newest night there is and says so.
+- **Today** (`TodayScreen.kt`). What the morning asks, in order: the app's own recovery as a ring, with
+  a line on what drove it or why there is none; HRV, resting heart rate and the sleep score, each
+  against the wearer's usual; time asleep against the need, with the sum the need came from; deep, REM
+  and light; the night as a strip of asleep, restless and awake; any other sleeps; and the last seven
+  days as small bars. "Last night" is the newest night, as long as it belongs to today by the core's
+  clock (the day rolls over at 04:00). Otherwise the screen shows the newest night there is and says so.
+- **The night** (`NightScreen.kt`), opened by tapping the recovery or the sleep card, or a day in
+  Trends: recovery and the sleep score as two dials; the night and any sleep before it from noon to
+  noon; heart rate through the night over the strip; where its HRV, resting heart rate and sleep sit
+  among the nights it was compared with; and, folded away, how the sleep score was worked out (with
+  the usual-sleep-need setting), the core's own figures for the day, and the other sleeps.
+- **Trends** (`TrendsScreen.kt`): the last seven days to pick from; the last week against the four
+  before it ("Progress"); sleep against need; HRV and resting heart rate against the usual; bed and
+  wake times; and the week's numbers as a table.
+- **Every screen has a pill** saying whether the strap is being recorded: "Synced" and when, or "Not
+  connected", or "Background recording off" when the link is up and the service that holds it in the
+  background is not. It is there because the app was once down for a while with nothing on the home
+  screen to show it.
+- `Insights.kt` holds the rules behind what these screens say and draw (pure, unit-tested), `Parts.kt`
+  the pieces they are drawn from, `Nights.kt` and `NightsViewModel.kt` what they load. A missing value
+  is a dash.
 - **Strap** (`StatusScreen.kt`): connection, bond, model, firmware, battery, last sync, whether the
   service is running, and how many rows each signal has for the last 24 hours and 7 days. It has
   Connect, Disconnect, Sync now, Export backup, Import backup and a Debug logging switch. Import backup
@@ -118,8 +133,9 @@ The rules, and why, are in [04-sleep-recovery-engine.md](04-sleep-recovery-engin
 | `scoring/StrapSleep.kt` | Finds sleeps in the strap's own state, given one row per minute. Pure Kotlin. |
 | `scoring/SleepDays.kt` | The stored record of a sleep, and which sleep is each day's night. Pure Kotlin. |
 | `scoring/SleepVitalsCalc.kt` | HRV and resting heart rate for a sleep, by the core's own functions. |
+| `scoring/SleepStagesCalc.kt` | Deep and REM for a sleep: the core's stager run over the strap's bounds. Estimates. |
 | `scoring/SleepLog.kt` | Brings the stored sleeps up to date: keeps settled ones, works the rest out again. |
-| `StrapSleepLoader.kt` | The reads: the strap's state by SQL on the core's database (read-only), heart rate and beats through the repository. |
+| `StrapSleepLoader.kt` | The reads: the strap's state and the heart rate by minute by SQL on the core's database (read-only); heart rate, beats and gravity through the repository. |
 | `SleepStore.kt` | The app's own store: `files/fork/sleeps.json`, with a rules version. |
 | `scoring/WhoopStyle.kt` | The app's sleep and recovery scores, fitted to how WHOOP scored the owner's history ([05-whoop-scoring-model.md](05-whoop-scoring-model.md)). |
 | `AppSettings.kt` | The one setting: the usual sleep need, 8 hours until changed. |
@@ -131,17 +147,24 @@ worked out again from the strap's rows. The core still detects sleep and scores 
 ## Seeing the UI without the phone
 
 The `demo` flavor runs in an emulator, where there is no strap. Upstream's seeder writes 120 days of
-synthetic stored days. `fork/app/DemoStrapNights.kt` adds made-up strap rows for the last nine nights
-(state, heart rate and beats every second), which is what the Last night tab reads. The newest night is
-shaped to show every optional row at once.
+synthetic stored days. `fork/app/DemoStrapNights.kt` adds made-up strap rows for the last 24 nights
+(state, heart rate and beats every second, and gravity for the newest three so they get a stage
+split), which is what the screens read. The newest night is shaped to show every optional row at once,
+and the nights differ enough for the charts and the progress card to have something to show.
 
 ```bash
 cd android && ANDROID_HOME=~/Library/Android/sdk ./gradlew assembleDemoDebug
-adb -e install -r app/build/outputs/apk/demo/debug/app-demo-debug.apk
+adb -s <the emulator's serial> install -r app/build/outputs/apk/demo/debug/app-demo-debug.apk
 ```
 
 It installs as `com.lhoop.whoop.demo.debug`, beside the real app and with its own data. Seeding takes
-about twenty seconds on first launch. `fork/tools/phone_ui.py` reads its screens too.
+under a minute on first launch, and the newest night appears last. `fork/tools/phone_ui.py` reads its
+screens too.
+
+**The emulator may be in use.** The owner's other work shares the one AVD. Look first (`adb devices`,
+`pgrep -fl qemu-system`) and never stop an emulator that was already running. A second instance of the
+same AVD starts with `-read-only -port 5556` and answers as `emulator-5556`; what it changes is thrown
+away when it stops. With the phone attached too, name the device on every `adb` command.
 
 ## The manifest
 
@@ -153,9 +176,11 @@ untouched.
 
 ## Status
 
-Built and unit-tested on the Mac: 4,322 tests, with only the two known failures. The Last night screen
-was looked at in an emulator on made-up data, with every optional row showing. On the phone, connection,
-bond, sync and export are confirmed on the strap, and three nights have recorded completely. Both
-builds of 2026-10-06 reconnected and synced by themselves after they were installed, and the Last night
-screen of each, read on the phone, showed the same nights as the replay of the backup on the Mac. The checks to run are in
+Built and unit-tested on the Mac: 4,359 tests, with only the two known failures. The three redrawn
+screens were looked at in an emulator on made-up data on 2026-10-06, each from top to bottom, with a
+night open and its folded sections open; then in an emulator on the newest real backup; then on the
+phone, where the build went on at 23:43 that night and each screen was opened once. That covered the
+state before a first recovery score. They have not yet been lived with: no morning has been read on
+them, and Trends has three nights to show. On the phone, connection, bond, sync and export are
+confirmed on the strap, and three nights have recorded completely. The checks to run are in
 [08-runbook.md](08-runbook.md).

@@ -28,15 +28,15 @@ Rules for the code itself are in [`AGENTS.md`](../../AGENTS.md). These notes are
   identifier. The owner deleted the old GitHub repository that day and started this one, with a fresh
   history on branch `master`. Commit ids and tags from before then no longer exist. The owner makes
   every commit and push himself.
-- **Code:** the cut, the stand-ins, the driver, the manifest overlay, two screens (last night, strap
-  status), nights built from the strap's own sleep state and the app's own WHOOP-style scores. It
-  builds an APK and passes the unit tests. See [10-app-structure.md](10-app-structure.md).
+- **Code:** the cut, the stand-ins, the driver, the manifest overlay, nights built from the strap's own
+  sleep state, the app's own WHOOP-style scores, and three tabs redrawn on 2026-10-06 (today, trends,
+  strap). It builds an APK and passes the unit tests. The redrawn screens, the nap rule and the stage
+  split went on the phone late on 2026-10-06. See [10-app-structure.md](10-app-structure.md).
 - **Phone:** a Pixel 9a (Android 17), with the WHOOP 5.0 fully paired, runs LHOOP since the evening of
   2026-10-06. To Android the renamed build is a different app, so the data came across through a
   backup: every row, and no gap across the move. Connecting, bonding, syncing, reconnecting after a
   restart and exporting were checked on the strap that evening. LHOOP has not recorded a night of its
-  own yet. The app it replaced is still installed, stopped, and must not be opened. See
-  [08-runbook.md](08-runbook.md).
+  own yet. The app it replaced was uninstalled that evening. See [08-runbook.md](08-runbook.md).
 - **WHOOP history:** 240 nights (2025-08-02 to 2026-06-29) are saved locally and analysed.
 - **Nights so far:** three recorded (3, 4 and 5 October), each complete, and all three analysed. The
   core's sleep detector was wrong on the first two and right on the third. Since 2026-10-06 the app

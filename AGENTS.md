@@ -62,11 +62,10 @@ The phone is where real loss can happen: it holds every recorded night, and a ba
 - **The phone runs LHOOP** (`com.lhoop.whoop.staging`) since the evening of 2026-10-06. It holds every
   recorded night and it is the app connected to the strap. A build of this code installs over it when
   it is signed with the same key.
-- **The app it replaced is still installed, and stopped.** It is the last build made before the rename.
-  To Android it is a different app, with the package name the app had then and its own copy of the data
-  up to the move. Do not open it: it reconnects to the strap by itself, and two apps must not both hold
-  the strap. Do not remove it either: that is the owner's call. How the data came across, and what was
-  checked, is under "Moving to the renamed app" in
+- **The app it replaced is gone.** The owner uninstalled it that evening, so LHOOP is the only app on
+  the phone that talks to the strap. Keep it that way: a build with another package name installs
+  beside LHOOP, reconnects by itself and takes records LHOOP then never gets. How the data came
+  across, what was checked, and what a second app cost once, is under "Moving to the renamed app" in
   [`fork/docs/08-runbook.md`](fork/docs/08-runbook.md).
 - **Rows LHOOP has synced exist only in LHOOP.** There is no tested way to carry them back into the old
   app, so a fault is fixed by installing a better build over LHOOP, not by going back.
@@ -117,7 +116,11 @@ The core can now be edited. Edit it sparingly all the same:
 (`fork/app/scoring/StrapSleep.kt`; the reasons are in `fork/docs/04-sleep-recovery-engine.md`). Do not
 go back to `sleepSession` or its `sleepStateJSON` for what counts as sleep: the core's detector has
 been wrong on real nights, and that stored copy is cut short on a strap worn round the clock. When the
-rules for finding a sleep or its heart figures change, raise `SleepStore.RULES`.
+rules for finding a sleep, its heart figures or its stages change, raise `SleepStore.RULES`.
+
+**Deep and REM are estimates, and the screen says so.** They are the core's stager run over the
+strap's night (`fork/app/scoring/SleepStagesCalc.kt`). Its deep sleep has been believable; its REM has
+read about twice what it should. Do not present either as measured, and do not feed them into a score.
 
 ## Stand-ins
 

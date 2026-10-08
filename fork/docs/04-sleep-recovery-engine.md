@@ -248,12 +248,20 @@ The app no longer takes sleep from the core. It reads the strap's state itself. 
    lowest five-minute mean, both by the core's own functions (`SleepStager.sessionHrvWindows`,
    `sessionHrvOverCounted`, `sessionRestingHR`) called on the strap's bounds. HRV needs six usable
    windows. The mean over the last three hours is kept beside it.
-9. **Each sleep is stored** in a JSON file of the app's own, never in the core's database, with the
+9. **Deep and REM** are the core's default stager (`SleepStagerV2.stageSession`) run once over the
+   sleep, read only inside the stretches the strap counted as sleep. Where the stager says "wake"
+   there, the time is light sleep: asleep or awake stays the strap's call. The shares found are
+   applied to the time asleep, so deep, REM and light add up to it. **These are estimates**, shown as
+   such and used in no score. On the first three nights and one afternoon sleep, deep came to a share
+   of sleep close to the wearer's WHOOP history's, and within about half an hour of a second device
+   on the one night compared. REM came to about twice the history's share, and about an hour and a
+   half more than the second device. Making REM believable is on the roadmap.
+10. **Each sleep is stored** in a JSON file of the app's own, never in the core's database, with the
    UTC offset it was slept in. A sleep is worked out again on every load until the strap's data runs
    three hours past it and any "up" after it; then the stored record stands. A rules version in the
-   file forces everything to be worked out again when the rules change (it is 2).
-10. **The screen and the WHOOP-style scores read only these nights.** The core's figures for the same
-    day are shown in a card of their own, with the stretch the core detected.
+   file forces everything to be worked out again when the rules change (it is 3).
+11. **The screens and the WHOOP-style scores read only these nights.** The core's figures for the same
+    day are shown apart, folded away on the night's screen, with the stretch the core detected.
 
 **Checked so far.** The same SQL and Kotlin replayed over the newest backup on the Mac
 (`StrapSleepBackupCheckTest`, skipped where no backup exists) give the same sleeps, to the second, as

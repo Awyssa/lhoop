@@ -11,6 +11,7 @@ import com.lhoop.data.WhoopDatabase
 import com.lhoop.data.WhoopRepository
 import fork.app.scoring.SleepLog
 import fork.app.scoring.SleepRecord
+import fork.app.scoring.SleepStagesCalc
 import fork.app.scoring.SleepVitals
 import fork.app.scoring.SleepVitalsCalc
 import fork.app.scoring.StateMinute
@@ -92,8 +93,39 @@ internal class StrapSleepLoader(
     private suspend fun vitals(deviceId: String, sleep: StrapSleep): SleepVitals? = runCatching {
         val hr = repository.hrSamplesForDevice(deviceId, sleep.startTs, sleep.endTs, HR_ROW_CAP)
         val rr = repository.rrIntervalsForDevice(deviceId, sleep.startTs, sleep.endTs, RR_ROW_CAP)
-        if (hr.size >= HR_ROW_CAP || rr.size >= RR_ROW_CAP) null else SleepVitalsCalc.compute(sleep, hr, rr)
+        if (hr.size >= HR_ROW_CAP || rr.size >= RR_ROW_CAP) return@runCatching null
+        val stages = stages(deviceId, sleep)
+        SleepVitalsCalc.compute(sleep, hr, rr).copy(deepSec = stages?.deepSec, remSec = stages?.remSec)
     }.getOrNull()
+
+    /** Deep and REM for a sleep, or null when its rows could not be read or staged. A failure here never costs the heart figures. */
+    private suspend fun stages(deviceId: String, sleep: StrapSleep) = runCatching {
+        val from = sleep.startTs - SleepStagesCalc.PAD_BEFORE_SEC
+        val to = sleep.endTs + SleepStagesCalc.PAD_AFTER_SEC
+        val grav = repository.gravitySamplesForDevice(deviceId, from, to, HR_ROW_CAP)
+        val hr = repository.hrSamplesForDevice(deviceId, from, to, HR_ROW_CAP)
+        val rr = repository.rrIntervalsForDevice(deviceId, from, to, RR_ROW_CAP)
+        if (grav.size >= HR_ROW_CAP || hr.size >= HR_ROW_CAP || rr.size >= RR_ROW_CAP) null
+        else SleepStagesCalc.compute(sleep, grav, hr, rr)
+    }.getOrNull()
+
+    /**
+     * What the night screen draws for one sleep: the strap's state and the mean heart rate, minute by
+     * minute, from when the wearer went still to the end of the sleep.
+     */
+    suspend fun detail(deviceId: String, sleep: StrapSleep): NightDetail = withContext(Dispatchers.IO) {
+        val from = sleep.bedStartTs / 60 * 60
+        val before = sleep.endTs + 1
+        NightDetail(
+            minutes = runCatching { minutes(deviceId, from, before) }.getOrDefault(emptyList()),
+            heart = runCatching { heartByMinute(deviceId, from, before) }.getOrDefault(emptyList()),
+        )
+    }
+
+    private fun heartByMinute(deviceId: String, from: Long, before: Long): List<Pair<Long, Double>> =
+        db.query(HEART_BY_MINUTE_SQL, arrayOf<Any?>(deviceId, from, before)).use { c ->
+            buildList { while (c.moveToNext()) add(c.getLong(0) to c.getDouble(1)) }
+        }
 
     companion object {
         const val HISTORY_DAYS = 46L
@@ -105,6 +137,11 @@ internal class StrapSleepLoader(
         /** Far above what one sleep can hold (a 24-hour sleep is 86,400 heart-rate rows), so a full read is never mistaken for a cut one. */
         const val HR_ROW_CAP = 200_000
         const val RR_ROW_CAP = 400_000
+
+        /** Table and columns from data/Entities.kt (`HrSample`): the minute and its mean heart rate. Arguments: deviceId, from, before. */
+        const val HEART_BY_MINUTE_SQL =
+            "SELECT ts / 60, AVG(bpm) FROM hrSample WHERE deviceId = ? AND ts >= ? AND ts < ? " +
+                "GROUP BY ts / 60 ORDER BY ts / 60"
 
         /** Table and columns from data/Entities.kt (`SleepStateSampleEntity`). Arguments: deviceId, before. */
         const val NEWEST_SQL = "SELECT MAX(ts) FROM sleepStateSample WHERE deviceId = ? AND ts < ?"

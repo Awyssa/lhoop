@@ -1,5 +1,5 @@
-// Fork-owned. Loads what the "Last night" screen shows: the nights found in the strap's own state, the
-// app's scores for them, and the core's own figures for the same days.
+// Fork-owned. Loads what the screens show: the nights found in the strap's own state, the app's scores
+// for them, what each was compared with, and the core's own figures for the newest days.
 package fork.app
 
 import android.app.Application
@@ -12,6 +12,7 @@ import com.lhoop.data.WhoopDatabase
 import com.lhoop.ui.logicalDayKeyNow
 import fork.app.scoring.SleepDays
 import fork.app.scoring.SleepRecord
+import fork.app.scoring.StrapSleep
 import fork.app.scoring.WhoopStyle
 import fork.app.scoring.WhoopStyleScore
 import kotlinx.coroutines.CancellationException
@@ -36,7 +37,7 @@ internal class NightsViewModel(app: Application) : AndroidViewModel(app) {
         val loaded: Boolean = false,
         /** Set when the nights could not be read; the screen says so instead of looking empty. */
         val error: String? = null,
-        /** The nights found in the strap's state, newest first. */
+        /** Every night found in the strap's state, newest first. Only the newest [Nights.HISTORY_NIGHTS] carry the core's figures. */
         val nights: List<Night> = emptyList(),
         /** Whether the newest night is last night, or an older one because last night is not in yet. */
         val isLastNight: Boolean = false,
@@ -44,6 +45,10 @@ internal class NightsViewModel(app: Application) : AndroidViewModel(app) {
         val napsSince: List<SleepRecord> = emptyList(),
         /** The app's own WHOOP-style scores, by [Night.day]. */
         val whoopStyle: Map<String, WhoopStyleScore> = emptyMap(),
+        /** What each night's HRV and resting heart rate were compared with, by [Night.day]. */
+        val usual: Map<String, Usual> = emptyMap(),
+        /** Today's date where the phone is, for the charts that end on it. */
+        val today: LocalDate? = null,
         /** The usual sleep need those scores started from. */
         val habitualNeedMin: Int = AppSettings.DEFAULT_HABITUAL_NEED_MIN,
         /** The core's newest day and its figures, for when the strap's state gave no night at all. */
@@ -57,6 +62,18 @@ internal class NightsViewModel(app: Application) : AndroidViewModel(app) {
         repository,
         SleepStore(SleepStore.fileIn(app.filesDir)),
     )
+
+    private val details = HashMap<StrapSleep, NightDetail>()
+
+    /** The strap's state and heart rate through one night, minute by minute, for the strip and the chart. Kept once read. */
+    suspend fun detail(night: Night): NightDetail {
+        val sleep = night.record.sleep
+        synchronized(details) { details[sleep] }?.let { return it }
+        return sleeps.detail(night.record.deviceId, sleep).also { loaded ->
+            // An unsettled night can still grow, so only a night nothing can change is kept.
+            if (night.record.settled) synchronized(details) { details[sleep] = loaded }
+        }
+    }
 
     /** The registry's active strap id: the same expression upstream's screens read. */
     private val activeId: Flow<String> =
@@ -98,13 +115,15 @@ internal class NightsViewModel(app: Application) : AndroidViewModel(app) {
         val newestFirst = assigned.days.asReversed()
         val stored = days.filter(Nights::hasNight).associateBy { it.day }
 
+        val today = LocalDate.now(zone)
         if (newestFirst.isEmpty()) {
-            val newest = stored.keys.filter { it <= LocalDate.now(zone).toString() }.maxOrNull()
+            val newest = stored.keys.filter { it <= today.toString() }.maxOrNull()
             return State(
                 loaded = true,
                 napsSince = assigned.napsSince,
                 habitualNeedMin = habitualNeedMin,
                 coreOnly = newest?.let { it to coreDays(deviceId, listOf(it), stored, zone).getValue(it) },
+                today = today,
             )
         }
 
@@ -112,14 +131,16 @@ internal class NightsViewModel(app: Application) : AndroidViewModel(app) {
         val shownKeys = newestFirst.take(Nights.HISTORY_NIGHTS).map { it.day.toString() }
         val core = coreDays(deviceId, shownKeys.filter { it in stored }, stored, zone)
         val all = newestFirst.map { Night(it.day.toString(), it.night, it.naps, core[it.day.toString()]) }
+        val inputs = all.mapNotNull(Nights::input)
         return State(
             loaded = true,
-            nights = all.take(Nights.HISTORY_NIGHTS),
+            nights = all,
             isLastNight = Nights.isLastNight(all.first().day, logicalDayKeyNow(zone)),
             napsSince = assigned.napsSince,
-            whoopStyle = WhoopStyle.score(all.mapNotNull(Nights::input), habitualNeedMin.toDouble())
-                .associateBy { it.day.toString() },
+            whoopStyle = WhoopStyle.score(inputs, habitualNeedMin.toDouble()).associateBy { it.day.toString() },
+            usual = inputs.associate { it.day.toString() to Insights.usual(WhoopStyle.baselineNights(it.day, inputs)) },
             habitualNeedMin = habitualNeedMin,
+            today = today,
         )
     }
 

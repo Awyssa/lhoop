@@ -28,7 +28,7 @@ Status on 2026-10-06, after the third night. Tick items as they land.
 - [x] First comparison with the Garmin's sleep page, and the owner's account of the first two nights.
 - [x] Count the other sleeps. Fitted from the 22 nights in the history that follow a nap: a nap's time
       asleep comes off the need of the night after it, and the nap counts as time asleep when days are
-      compared for consistency. Built on 2026-10-06; not on the phone until the next install
+      compared for consistency. Built on 2026-10-06 and on the phone since that night
       ([05-whoop-scoring-model.md](05-whoop-scoring-model.md)).
 
 ## Next: check the new nights against the references
@@ -58,8 +58,10 @@ That is a good start, not a result.
 
 ## Then: the app
 
-4. **A first real screen.** Done. Since 2026-10-06 it shows the strap's own nights, with the app's own
-   recovery at the top and the core's figures in a card of their own. Next: the owner's reaction to it.
+4. **The screens.** A first long screen of rows went on the phone on 2026-10-06. The owner found it
+   hard to read, chose three drafts the same evening, and they were built: Today, the night and Trends,
+   in one dark look ([10-app-structure.md](10-app-structure.md)). On the phone since 23:43 that night.
+   Next: his reaction to them on real nights, and an icon of the app's own.
 5. **The app's own scoring.** First version done on 2026-10-03: sleep need with carried debt, a sleep
    score from hours against need, efficiency and consistency, and recovery from HRV and resting heart
    rate against the last 8 nights. On the WHOOP history it is within 7.8 points of WHOOP's recovery.
@@ -71,9 +73,19 @@ That is a good start, not a result.
    reference printed beside them ([06-validation-plan.md](06-validation-plan.md)).
 7. **Better inputs:** HRV window selection, and whether the resting heart rate should be the mean over
    the sleep instead of the lowest five minutes.
+   **Make REM believable.** The owner wants deep and REM each morning. The split shown is the core's
+   stager over the strap's night: deep looks right, REM reads about double
+   ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md), rule 9). Compare each morning's split
+   with the Garmin's, find why the stager over-calls REM on this strap, and fix or replace that part.
+   **Progress over longer spans.** Trends compares the last week with the four before it by plain
+   means. It says nothing until there are four nights in the week and seven before it; months of
+   nights would allow more.
 8. **Settings the app needs:** background connection, continuous HRV capture, the body profile. Today
    they are frozen at what the original app saved.
 9. **Start by itself after a phone restart.** Upstream needs the app opened once; this one need not.
+   And **bring the strap service back whenever the app is opened**: today it starts only with the
+   process or on Connect, so after Android stops it the app stays down until it is restarted
+   (seen on 2026-10-06, [08-runbook.md](08-runbook.md), "Phone settings").
 10. **Thin `analytics/`** to what sleep and recovery use, once the app's own scoring has replaced it.
 
 ## Housekeeping
@@ -85,8 +97,9 @@ That is a good start, not a result.
       build without it is signed with another key and cannot be installed over the app.
 - [x] Move the phone to the renamed app. Done on 2026-10-06 through a backup: the old app exported,
       LHOOP imported, then connected to the strap. Nothing was lost. See [08-runbook.md](08-runbook.md).
-- [ ] After the move: LHOOP's battery usage set to Unrestricted, a first full night recorded under it,
-      then the old app removed (the owner's call: removing it deletes its copy of the data).
+- [x] Remove the old app. The owner uninstalled it on 2026-10-06.
+- [x] LHOOP's battery usage set to Unrestricted, by the owner on 2026-10-06.
+- [ ] After the move: a first full night recorded under LHOOP.
 - [ ] Watch upstream for Bluetooth fixes worth applying by hand. They can no longer be merged.
 - [ ] Choose the Garmin data route ([06-validation-plan.md](06-validation-plan.md)). For now:
       `fork/tools/capture_garmin.sh`, which reads the sleep page off the phone's screen.

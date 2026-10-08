@@ -18,8 +18,8 @@ no account, no cloud. The app has no network code and no internet permission.
 
 Early. The app connects to the strap and stores what it records. It finds each night's sleep in the
 strap's own sleep state, works out HRV and resting heart rate over that sleep, and scores it with a
-model fitted to the owner's WHOOP history. It has two screens: last night's sleep and recovery, and the
-strap's status. The code builds and passes its unit tests. It runs on the owner's phone, where
+model fitted to the owner's WHOOP history. It has three tabs: the morning's answers at a glance, with
+each night to look at closely; trends; and the strap's status. The code builds and passes its unit tests. It runs on the owner's phone, where
 connecting, bonding, syncing and exporting were confirmed on the strap. Three nights were recorded by
 the build from before the rename; the renamed build took over on 2026-10-06, with those nights restored
 from a backup, and has not recorded a night of its own yet. One night has been compared with a second

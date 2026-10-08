@@ -18,6 +18,10 @@ data class SleepVitals(
     val hrvWindows: Int,
     /** The lowest five-minute mean heart rate in the sleep. */
     val restingHr: Int?,
+    /** Seconds of deep sleep, by the original engine's stager run over this sleep. Null when it could not stage it. */
+    val deepSec: Long? = null,
+    /** Seconds of REM, likewise. Light sleep is the rest of the time asleep. */
+    val remSec: Long? = null,
 )
 
 /** A sleep found in the strap's state, with its heart figures, as the app stores it. */

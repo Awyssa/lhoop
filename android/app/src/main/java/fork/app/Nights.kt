@@ -51,6 +51,13 @@ internal data class Night(
     val asleepMin: Double get() = record.sleep.asleepSec / 60.0
     val hrvMs: Double? get() = record.vitals?.hrvMs
     val restingHr: Int? get() = record.vitals?.restingHr
+
+    /** Deep and REM, by the original engine's stager run over this night. Estimates; null when it could not stage it. */
+    val deepMin: Double? get() = record.vitals?.deepSec?.let { it / 60.0 }
+    val remMin: Double? get() = record.vitals?.remSec?.let { it / 60.0 }
+
+    /** The rest of the time asleep. Null without a stage split. */
+    val lightMin: Double? get() = deepMin?.let { deep -> remMin?.let { rem -> (asleepMin - deep - rem).coerceAtLeast(0.0) } }
 }
 
 internal enum class RecoveryBand { RED, YELLOW, GREEN }

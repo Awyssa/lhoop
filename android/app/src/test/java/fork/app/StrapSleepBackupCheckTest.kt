@@ -1,10 +1,12 @@
 package fork.app
 
+import com.lhoop.data.GravitySample
 import com.lhoop.data.HrSample
 import com.lhoop.data.RrInterval
 import com.lhoop.data.WHOOP5_RR_INTERVALS_SQL
 import fork.app.scoring.SleepDays
 import fork.app.scoring.SleepRecord
+import fork.app.scoring.SleepStagesCalc
 import fork.app.scoring.SleepVitalsCalc
 import fork.app.scoring.StateMinute
 import fork.app.scoring.StrapSleeps
@@ -70,6 +72,14 @@ class StrapSleepBackupCheckTest {
         prepareStatement("SELECT ts, bpm FROM hrSample WHERE deviceId = ? AND ts >= ? AND ts <= ? ORDER BY ts").use { st ->
             st.setString(1, deviceId); st.setLong(2, from); st.setLong(3, to)
             st.executeQuery().use { rs -> buildList { while (rs.next()) add(HrSample(deviceId, rs.getLong(1), rs.getInt(2))) } }
+        }
+
+    private fun Connection.gravity(deviceId: String, from: Long, to: Long): List<GravitySample> =
+        prepareStatement("SELECT ts, x, y, z FROM gravitySample WHERE deviceId = ? AND ts >= ? AND ts <= ? ORDER BY ts").use { st ->
+            st.setString(1, deviceId); st.setLong(2, from); st.setLong(3, to)
+            st.executeQuery().use { rs ->
+                buildList { while (rs.next()) add(GravitySample(deviceId, rs.getLong(1), rs.getDouble(2), rs.getDouble(3), rs.getDouble(4))) }
+            }
         }
 
     /** The repository's own scoring read for a WHOOP 5: the same SQL constant the DAO runs. */
@@ -147,17 +157,32 @@ class StrapSleepBackupCheckTest {
                     db.heartRate(deviceId, sleep.startTs, sleep.endTs),
                     db.beats(deviceId, sleep.startTs, sleep.endTs),
                 )
-                SleepRecord(deviceId, sleep, zone.rules.getOffset(Instant.ofEpochSecond(sleep.endTs)).totalSeconds, vitals, through)
+                // As the loader does it: the stager is given the sleep with its padding on either side.
+                val from = sleep.startTs - SleepStagesCalc.PAD_BEFORE_SEC
+                val to = sleep.endTs + SleepStagesCalc.PAD_AFTER_SEC
+                val stages = SleepStagesCalc.compute(sleep, db.gravity(deviceId, from, to), db.heartRate(deviceId, from, to), db.beats(deviceId, from, to))
+                SleepRecord(
+                    deviceId, sleep, zone.rules.getOffset(Instant.ofEpochSecond(sleep.endTs)).totalSeconds,
+                    vitals.copy(deepSec = stages?.deepSec, remSec = stages?.remSec), through,
+                )
             }
             val assigned = SleepDays.assign(records)
 
             println("Backup ${backup.parentFile.name}, strap data through ${at(through)}")
+            fun stagesOf(r: SleepRecord): String {
+                val deep = r.vitals?.deepSec ?: return "no stage split"
+                val rem = r.vitals?.remSec ?: return "no stage split"
+                val asleep = r.sleep.asleepSec.coerceAtLeast(1)
+                return "deep %s (%.0f%%), REM %s (%.0f%%), light %s".format(
+                    hm(deep), 100.0 * deep / asleep, hm(rem), 100.0 * rem / asleep, hm(asleep - deep - rem),
+                )
+            }
             fun line(label: String, r: SleepRecord) = println(
-                "  %-16s in bed %s -> %s | asleep %s (restless %s), awake inside %s, up after %s | efficiency %.0f%% | HRV %s (last 3 h %s, %d windows) | RHR %s%s".format(
+                "  %-16s in bed %s -> %s | asleep %s (restless %s), awake inside %s, up after %s | efficiency %.0f%% | HRV %s (last 3 h %s, %d windows) | RHR %s | %s%s".format(
                     label, at(r.sleep.bedStartTs), at(r.sleep.endTs), hm(r.sleep.asleepSec), hm(r.sleep.restlessSec), hm(r.sleep.awakeSec), hm(r.sleep.upAfterSec),
                     r.sleep.efficiencyPct, r.vitals?.hrvMs?.let { "%.1f".format(it) } ?: "-",
                     r.vitals?.lateHrvMs?.let { "%.1f".format(it) } ?: "-", r.vitals?.hrvWindows ?: 0,
-                    r.vitals?.restingHr ?: "-",
+                    r.vitals?.restingHr ?: "-", stagesOf(r),
                     (if (r.sleep.wakeConfirmed) "" else " | no waking seen") + (if (r.ongoing) " | the data ends here" else ""),
                 ),
             )
@@ -198,6 +223,11 @@ class StrapSleepBackupCheckTest {
                 assertTrue(s.asleepSec == s.stretches.sumOf { it.asleepSec })
                 assertTrue(s.restlessSec in 0..s.asleepSec && s.restlessSec == s.stretches.sumOf { it.restlessSec })
                 assertTrue(s.efficiencyPct in 0.0..100.0)
+            }
+            records.forEach { r ->
+                val deep = r.vitals?.deepSec ?: return@forEach
+                val rem = r.vitals?.remSec ?: return@forEach
+                assertTrue("deep and REM exceed the time asleep", deep >= 0 && rem >= 0 && deep + rem <= r.sleep.asleepSec)
             }
             assertTrue(assigned.days.map { it.day } == assigned.days.map { it.day }.distinct())
             assertTrue(assigned.days.sumOf { 1 + it.naps.size } + assigned.napsSince.size <= records.size)

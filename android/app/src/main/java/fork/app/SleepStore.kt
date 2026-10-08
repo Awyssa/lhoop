@@ -59,6 +59,8 @@ internal class SleepStore(private val file: File) {
                 v.lateHrvMs?.let { put("hrvLate", it) }
                 put("hrvWindows", v.hrvWindows)
                 v.restingHr?.let { put("rhr", it) }
+                v.deepSec?.let { put("deep", it) }
+                v.remSec?.let { put("rem", it) }
             })
         }
         put("through", r.dataThroughTs)
@@ -88,6 +90,8 @@ internal class SleepStore(private val file: File) {
                     lateHrvMs = if (v.has("hrvLate")) v.getDouble("hrvLate") else null,
                     hrvWindows = v.getInt("hrvWindows"),
                     restingHr = if (v.has("rhr")) v.getInt("rhr") else null,
+                    deepSec = if (v.has("deep")) v.getLong("deep") else null,
+                    remSec = if (v.has("rem")) v.getLong("rem") else null,
                 )
             },
             dataThroughTs = o.getLong("through"),
@@ -100,13 +104,15 @@ internal class SleepStore(private val file: File) {
 
         /**
          * The version of the rules the records were worked out under: how sleeps are found
-         * (scoring/StrapSleep.kt) and how their heart figures are computed (scoring/SleepVitalsCalc.kt).
-         * Raise it whenever either changes. A file written under another version is ignored, and
-         * everything is worked out again from the strap's rows.
+         * (scoring/StrapSleep.kt), how their heart figures are computed (scoring/SleepVitalsCalc.kt) and
+         * how they are split into stages (scoring/SleepStagesCalc.kt). Raise it whenever any of them
+         * changes. A file written under another version is ignored, and everything is worked out again
+         * from the strap's rows.
          *
          * 1: only state 2 counted as asleep. 2: "up" counts too, except the strap's wake confirmation.
+         * 3: deep and REM are kept with each sleep.
          */
-        const val RULES = 2
+        const val RULES = 3
 
         private const val KEY_RULES = "rules"
         private const val KEY_SLEEPS = "sleeps"
