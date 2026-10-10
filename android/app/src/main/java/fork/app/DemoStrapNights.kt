@@ -2,8 +2,9 @@
 // built from, so the screen can be looked at in an emulator, where there is no strap.
 //
 // Upstream's DemoSeeder writes stored days and sleep sessions and no raw rows. This adds, for the last
-// few weeks, the strap's state every second, a heart rate every second and a beat every second, and for
-// the newest nights the gravity vector the stage split needs. All of it is made up. It runs only when
+// few weeks, the strap's state every second, a heart rate every second and a beat every second, for
+// the newest nights the gravity vector the stage split needs, and one stretch off the wrist. All of it
+// is made up. It runs only when
 // BuildConfig.ENABLE_DEMO is set, in a package of its own with its own data.
 package fork.app
 
@@ -13,6 +14,7 @@ import com.lhoop.data.HrSample
 import com.lhoop.data.RrInterval
 import com.lhoop.data.SleepStateSampleEntity
 import com.lhoop.data.WhoopDatabase
+import com.lhoop.data.WhoopRepository
 import com.lhoop.protocol.RrSourceChannel
 import java.time.LocalDate
 import java.time.ZoneId
@@ -124,5 +126,15 @@ internal object DemoStrapNights {
         // The strap's "awake" a minute ago, so the data visibly runs past the last sleep.
         if (state.lastOrNull()?.ts?.let { it < nowSec - 60 } != false) state += SleepStateSampleEntity(DEVICE, nowSec - 60, 0)
         flush(force = true)
+
+        // A stretch off the wrist early in the afternoon before the newest night, clear of that day's
+        // sleep: the strap's own two events, in the form the core stores them, with no rows in between.
+        val repository = WhoopRepository.from(context)
+        val offAt = today.minusDays(1).atTime(12, 30).atZone(zone).toEpochSecond()
+        repository.recordEvent(deviceId = DEVICE, ts = offAt, kind = "WRIST_OFF(10)", payloadJSON = "{}")
+        repository.recordEvent(deviceId = DEVICE, ts = offAt + OFF_WRIST_SEC, kind = "WRIST_ON(9)", payloadJSON = "{}")
     }
+
+    /** Long enough to be mentioned in words on Trends, which wants an hour. */
+    private const val OFF_WRIST_SEC = 2 * 3600L + 600
 }

@@ -73,8 +73,8 @@ internal fun NightScreen(
 
         ScreenHeader(shortDate(night.day), Nights.span(night.record.sleep.bedStartTs, night.record.sleep.endTs, night.record.offset), status, onBack)
         Dials(night, score)
-        LastDay(night)
-        NightChart(night, detail)
+        LastDay(night, state.wrist)
+        NightChart(night, detail, Insights.offWristSecondsInBed(night, state.wrist))
         Against(night, score, usual, remember(state.nights, state.whoopStyle) { Insights.trend(state.nights, state.whoopStyle) })
         Fold("How the sleep score was worked out") { Working(score, state.habitualNeedMin) }
         Fold("Figures from the original engine") {
@@ -120,11 +120,12 @@ private fun Dial(value: Double?, color: androidx.compose.ui.graphics.Color, titl
     }
 }
 
-/** The night and any sleep before it on one bar from noon to noon. */
+/** The night and any sleep before it on one bar from noon to noon, with any hours the strap was off the wrist. */
 @Composable
-private fun LastDay(night: Night) {
+private fun LastDay(night: Night, wrist: NightsViewModel.Wrist) {
     val spans = remember(night) { Insights.lastDay(night) }
     if (spans.isEmpty()) return
+    val offWrist = remember(night, wrist) { Insights.offWristOnLastDay(night, wrist) }
     val earlier = night.naps.sumOf { it.sleep.asleepSec }
     Panel(padding = 14.dp) {
         PanelTitle(
@@ -132,15 +133,19 @@ private fun LastDay(night: Night) {
             if (earlier > 0) "Earlier ${Nights.durationSec(earlier)}, night ${Nights.duration(night.asleepMin)}" else "Night ${Nights.duration(night.asleepMin)}",
         )
         Spacer(Modifier.height(10.dp))
-        DayStrip(spans)
+        DayStrip(spans, offWrist)
         Spacer(Modifier.height(6.dp))
         Ticks(listOf("12:00", "18:00", "00:00", "06:00", "12:00"))
+        if (offWrist.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Legend(Ink.text3, Insights.offWristLegend(Insights.offWristSecondsOnLastDay(night, wrist)))
+        }
     }
 }
 
 /** Heart rate through the night over the strap's states, then the totals and the stage split. */
 @Composable
-private fun NightChart(night: Night, detail: NightDetail?) {
+private fun NightChart(night: Night, detail: NightDetail?, offWristInBedSec: Long) {
     val record = night.record
     val sleep = record.sleep
     Panel {
@@ -188,7 +193,7 @@ private fun NightChart(night: Night, detail: NightDetail?) {
                 "second device's; its REM has read about an hour and a half more. " +
                 "Restless is time the strap saw you move without calling you awake; it counts as sleep.",
         )
-        NightNotes(night)
+        NightNotes(night, offWristInBedSec)
     }
 }
 

@@ -103,10 +103,23 @@ class InsightsTest {
     }
 
     @Test
-    fun theSleepNeedIsSpeltOutFromItsParts() {
-        assertEquals("8h 0m usual", Insights.needSum(480, score()))
+    fun theSleepNeedIsSpeltOutFromItsPartsOnlyWhenItHasAny() {
+        // The usual need and nothing else: the card has just said that figure, so it is not said twice.
+        assertNull(Insights.needSum(480, score()))
+        assertNull(Insights.needSum(480, score(debt = 0.4, credit = 0.9)))
         assertEquals("8h 0m usual + 25m debt", Insights.needSum(480, score(debt = 25.0)))
+        assertEquals("8h 0m usual − 35m earlier sleep", Insights.needSum(480, score(credit = 35.0)))
         assertEquals("7h 30m usual + 25m debt − 35m earlier sleep", Insights.needSum(450, score(debt = 25.0, credit = 35.0)))
+    }
+
+    @Test
+    fun aShortBaselineIsSaidUnderTheScoreUntilItIsFull() {
+        fun usual(nights: Int) = Insights.usual((1..nights).map { input(it.toLong(), 40.0, 56.0) })
+        assertEquals("Based on your last 4 nights. A full score uses 8.", Insights.baselineNote(64.0, usual(4)))
+        assertEquals("Based on your last 7 nights. A full score uses 8.", Insights.baselineNote(64.0, usual(7)))
+        assertNull(Insights.baselineNote(64.0, usual(8)))
+        // No score, nothing to qualify: the line above already says why there is none.
+        assertNull(Insights.baselineNote(null, usual(2)))
     }
 
     @Test

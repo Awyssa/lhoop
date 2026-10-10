@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LHOOP's home-screen widget, four cells by two. Android redraws it every half hour
+     (updatePeriodMillis is its shortest), so that an old night stops being shown as this morning's;
+     the app also redraws it whenever the numbers change. The initial layout is the widget's own, with
+     its default texts. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/morning_widget_description"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="180dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/morning_widget" />

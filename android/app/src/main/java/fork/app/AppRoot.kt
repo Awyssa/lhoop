@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 private const val TAB_TODAY = 0
@@ -56,7 +57,10 @@ fun AppRoot(driver: FoundationDriver = viewModel()) {
     var tab by rememberSaveable { mutableIntStateOf(TAB_TODAY) }
     // The night opened over the tabs, by its day. Back closes it; so does picking a tab.
     var openNight by rememberSaveable { mutableStateOf<String?>(null) }
-    val status = rememberStrapStatus(driver)
+    // The same nights the screens read (one view model for the Activity): the pill needs to know when the strap is off the wrist.
+    val nights: NightsViewModel = viewModel()
+    val nightsState by nights.state.collectAsStateWithLifecycle()
+    val status = rememberStrapStatus(driver, offWrist = nightsState.wrist.offNow != null)
     BackHandler(enabled = openNight != null) { openNight = null }
 
     Scaffold(

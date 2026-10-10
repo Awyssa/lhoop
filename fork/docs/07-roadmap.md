@@ -1,6 +1,7 @@
 # Roadmap
 
-Status on 2026-10-06, after the third night. Tick items as they land.
+Status on 2026-10-09, after the sixth night and three days on the redrawn screens. A third LHOOP build
+was made that day and is waiting to go on the phone. Tick items as they land.
 
 ## Done
 
@@ -61,7 +62,10 @@ That is a good start, not a result.
 4. **The screens.** A first long screen of rows went on the phone on 2026-10-06. The owner found it
    hard to read, chose three drafts the same evening, and they were built: Today, the night and Trends,
    in one dark look ([10-app-structure.md](10-app-structure.md)). On the phone since 23:43 that night.
-   Next: his reaction to them on real nights, and an icon of the app's own.
+   Built on 2026-10-09 and **not yet on the phone**: a home-screen widget with the morning's numbers,
+   the app's own icon, and the sleep card saying the need once. None of it has been seen on a screen.
+   Next: put that build on the phone with the checks in [08-runbook.md](08-runbook.md), and his
+   reaction to all of it on real nights.
 5. **The app's own scoring.** First version done on 2026-10-03: sleep need with carried debt, a sleep
    score from hours against need, efficiency and consistency, and recovery from HRV and resting heart
    rate against the last 8 nights. On the WHOOP history it is within 7.8 points of WHOOP's recovery.
@@ -74,19 +78,37 @@ That is a good start, not a result.
 7. **Better inputs:** HRV window selection, and whether the resting heart rate should be the mean over
    the sleep instead of the lowest five minutes.
    **Make REM believable.** The owner wants deep and REM each morning. The split shown is the core's
-   stager over the strap's night: deep looks right, REM reads about double
-   ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md), rule 9). Compare each morning's split
-   with the Garmin's, find why the stager over-calls REM on this strap, and fix or replace that part.
+   stager over the strap's night, and its REM reads about double. Why is known since 2026-10-09: most
+   of the REM comes from a term that rises with time of night, not from evidence, and deep is pinned
+   near the same share of every sleep ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md),
+   "Why the REM reads high"). No fix was made: one comparable reference night cannot tell a good
+   change from a lucky one. Next: capture the Garmin's Stages view each morning until there are about
+   fourteen nights, then choose a change on half and judge it on the rest
+   ([06-validation-plan.md](06-validation-plan.md), "What a stage fix needs"). The tools are there:
+   `fork/tools/stage_whatif.py` tries a change, and the replay test prints the app's split beside the
+   Garmin's.
    **Progress over longer spans.** Trends compares the last week with the four before it by plain
    means. It says nothing until there are four nights in the week and seven before it; months of
    nights would allow more.
 8. **Settings the app needs:** background connection, continuous HRV capture, the body profile. Today
    they are frozen at what the original app saved.
-9. **Start by itself after a phone restart.** Upstream needs the app opened once; this one need not.
-   And **bring the strap service back whenever the app is opened**: today it starts only with the
-   process or on Connect, so after Android stops it the app stays down until it is restarted
-   (seen on 2026-10-06, [08-runbook.md](08-runbook.md), "Phone settings").
+9. **Start by itself after a phone restart, and bring the strap service back whenever the app is
+   opened.** Built on 2026-10-09 (`fork/app/StrapStartup.kt`, `BootReceiver.kt`), not yet on the phone
+   and not yet tried on the strap: the checks are in [08-runbook.md](08-runbook.md). Still open after
+   that: nothing runs after an app update until the app is opened, by decision
+   ([02-decisions.md](02-decisions.md)), and a restart that nobody unlocks records nothing until
+   someone does.
 10. **Thin `analytics/`** to what sleep and recovery use, once the app's own scoring has replaced it.
+11. **Name the hours off the wrist.** Done on 2026-10-09. The strap logs when it comes off and goes
+    back on, and stores nothing in between ([03-whoop5-status.md](03-whoop5-status.md)).
+    `night_report.py` lists those hours as that and keeps them out of its completeness figure. The app
+    draws them on the night's 24-hour bar and says them in the pill, on the home screen, on Trends and
+    on the Strap tab (`fork/app/OffWrist.kt`); that part is in the build not yet on the phone.
+12. **Say how young the baseline is.** Done on 2026-10-09, in the same build: under the recovery line
+    the home screen says how many nights the score is based on until there are eight.
+13. **Lighter backups in the morning routine.** The tools could read a `.lhoopbak` without unpacking
+    it, which would save four fifths of what the routine keeps on the Mac
+    ([11-old-raw-data.md](11-old-raw-data.md), option B). Not built.
 
 ## Housekeeping
 
@@ -99,7 +121,17 @@ That is a good start, not a result.
       LHOOP imported, then connected to the strap. Nothing was lost. See [08-runbook.md](08-runbook.md).
 - [x] Remove the old app. The owner uninstalled it on 2026-10-06.
 - [x] LHOOP's battery usage set to Unrestricted, by the owner on 2026-10-06.
-- [ ] After the move: a first full night recorded under LHOOP.
+- [x] After the move: a first full night recorded under LHOOP. Three by 2026-10-09, each whole.
+- [ ] **Decide what happens to old one-second rows.** Written up with measurements, six options and
+      a recommendation in [11-old-raw-data.md](11-old-raw-data.md): six tables have no cap and grow by
+      28 MB for every day worn, about 10 GB a year, and each export grows by 7 MB a day. The phone has
+      room for years; the export is what gets unwieldy first. Recommended: nothing deleted now, and a
+      by-hand trim of rows older than 90 days, only after an export, once an export passes 500 MB
+      (the second week of December at today's rate). Trimming writes to the core's database, so it is
+      the owner's call.
+- [ ] Clear out old exports. Every export stays in the phone's Downloads, and every pull is kept on the
+      Mac both zipped and unpacked. The owner deletes them; keep the newest and the one from before
+      the last install.
 - [ ] Watch upstream for Bluetooth fixes worth applying by hand. They can no longer be merged.
 - [ ] Choose the Garmin data route ([06-validation-plan.md](06-validation-plan.md)). For now:
       `fork/tools/capture_garmin.sh`, which reads the sleep page off the phone's screen.

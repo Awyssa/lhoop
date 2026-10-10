@@ -99,9 +99,12 @@ internal fun Caption(text: String, color: Color = Ink.text3, modifier: Modifier 
     Text(text, fontSize = 13.sp, lineHeight = 18.sp, color = color, modifier = modifier)
 }
 
-/** The strap's status as the pill says it, checked again every few seconds while a screen is showing. */
+/**
+ * The strap's status as the pill says it, checked again every few seconds while a screen is showing.
+ * [offWrist] is whether the strap has reported itself off the wrist and not back on.
+ */
 @Composable
-internal fun rememberStrapStatus(driver: FoundationDriver): StrapStatus {
+internal fun rememberStrapStatus(driver: FoundationDriver, offWrist: Boolean): StrapStatus {
     val context = LocalContext.current
     val live by driver.ble.state.collectAsStateWithLifecycle()
     var serviceRunning by remember { mutableStateOf(true) }
@@ -113,7 +116,7 @@ internal fun rememberStrapStatus(driver: FoundationDriver): StrapStatus {
             delay(5_000L)
         }
     }
-    return Insights.strapStatus(live.connected, serviceRunning, live.lastSyncAt, now, ZoneId.systemDefault())
+    return Insights.strapStatus(live.connected, serviceRunning, live.lastSyncAt, now, ZoneId.systemDefault(), offWrist = offWrist)
 }
 
 @Composable
@@ -247,9 +250,13 @@ internal fun StageBar(deepMin: Double, remMin: Double, lightMin: Double) {
     }
 }
 
-/** Sleeps between noon and noon as blocks on one bar, each given as (from, to) on a scale of 0 to 1. */
+/**
+ * Sleeps between noon and noon as blocks on one bar, each given as (from, to) on a scale of 0 to 1.
+ * The stretches [offWrist] are drawn over them as a thin grey band on the bar's own ground: the strap
+ * recorded nothing then, which is not a fault and not sleep.
+ */
 @Composable
-internal fun DayStrip(spans: List<Pair<Float, Float>>) {
+internal fun DayStrip(spans: List<Pair<Float, Float>>, offWrist: List<Pair<Float, Float>> = emptyList()) {
     Canvas(Modifier.fillMaxWidth().height(22.dp).clip(RoundedCornerShape(6.dp)).background(Ink.inner)) {
         for ((from, to) in spans) {
             drawRoundRect(
@@ -258,6 +265,12 @@ internal fun DayStrip(spans: List<Pair<Float, Float>>) {
                 size = Size(max(size.width * (to - from), 3.dp.toPx()), size.height),
                 cornerRadius = CornerRadius(4.dp.toPx()),
             )
+        }
+        val band = 6.dp.toPx()
+        for ((from, to) in offWrist) {
+            val width = max(size.width * (to - from), 3.dp.toPx())
+            drawRect(Ink.inner, topLeft = Offset(size.width * from, 0f), size = Size(width, size.height))
+            drawRect(Ink.text3, topLeft = Offset(size.width * from, (size.height - band) / 2), size = Size(width, band))
         }
     }
 }

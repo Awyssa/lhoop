@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import fork.app.scoring.SleepRecord
 import fork.app.scoring.WhoopStyleScore
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -71,6 +72,7 @@ internal fun TodayScreen(
             }
             shown == null -> {
                 ScreenHeader("Last night", "No nights yet", status)
+                OffWristLine(state)
                 Panel {
                     Caption(
                         "A night shows here once the strap has synced one that it flagged as sleep itself. " +
@@ -92,14 +94,27 @@ internal fun TodayScreen(
                     subtitle = if (state.isLastNight) longDate(shown.day) else "${longDate(shown.day)}. Nothing for last night yet.",
                     status = status,
                 )
+                OffWristLine(state)
                 RecoveryHero(shown, score, usual, onClick = { onOpenNight(shown.day) })
                 InputTiles(shown, score, usual)
-                SleepPanel(shown, score, state.habitualNeedMin, detail, state.napsSince, onClick = { onOpenNight(shown.day) })
+                SleepPanel(shown, score, state.habitualNeedMin, detail, state.napsSince, state.wrist, onClick = { onOpenNight(shown.day) })
                 WeekPanel(state, onOpenTrends)
                 Caption("Estimates computed on this phone from the strap's data. Not medical advice.")
             }
         }
     }
+}
+
+/** Under the header, when there is something to say: the strap is off the wrist, or was for much of a night that left no record. */
+@Composable
+private fun OffWristLine(state: NightsViewModel.State) {
+    val line = remember(state) {
+        Insights.offWristToday(
+            state.wrist, state.isLastNight, state.logicalToday?.let(Nights::date),
+            System.currentTimeMillis() / 1000L, ZoneId.systemDefault(),
+        )
+    } ?: return
+    Caption(line, color = Ink.text2)
 }
 
 /** The recovery score as a ring, the verdict in a word, and a line on what drove it or why there is none. */
@@ -134,6 +149,7 @@ private fun RecoveryHero(night: Night, score: WhoopStyleScore?, usual: Usual, on
                     lineHeight = 20.sp,
                     color = Ink.text2,
                 )
+                Insights.baselineNote(recovery, usual)?.let { Caption(it) }
             }
         }
     }
@@ -182,6 +198,7 @@ private fun SleepPanel(
     habitualNeedMin: Int,
     detail: NightDetail?,
     napsSince: List<SleepRecord>,
+    wrist: NightsViewModel.Wrist,
     onClick: () -> Unit,
 ) {
     val record = night.record
@@ -198,7 +215,7 @@ private fun SleepPanel(
             MeterBar((pct / 100.0).toFloat())
             Spacer(Modifier.height(8.dp))
             Caption("${Nights.whole(pct)}% of the ${Nights.duration(score.needMin)} you needed", color = Ink.text2)
-            Caption(Insights.needSum(habitualNeedMin, score))
+            Insights.needSum(habitualNeedMin, score)?.let { Caption(it) }
         }
 
         Spacer(Modifier.height(14.dp))
@@ -214,7 +231,7 @@ private fun SleepPanel(
         NightStrip(night, detail)
         Spacer(Modifier.height(8.dp))
         StripLegend(night)
-        NightNotes(night)
+        NightNotes(night, Insights.offWristSecondsInBed(night, wrist))
 
         if (night.naps.isNotEmpty() || napsSince.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
@@ -280,11 +297,18 @@ internal fun StripLegend(night: Night) {
     }
 }
 
-/** What the screen must say when a night may not be over, or when uncounted restless time followed it. */
+/**
+ * What the screen must say when a night may not be over, when uncounted restless time followed it, or
+ * when the strap was off the wrist for [offWristSec] of the time in bed.
+ */
 @Composable
-internal fun NightNotes(night: Night) {
+internal fun NightNotes(night: Night, offWristSec: Long) {
     val record = night.record
     val sleep = record.sleep
+    if (offWristSec > 0) {
+        Spacer(Modifier.height(8.dp))
+        Caption(Insights.offWristInBed(offWristSec))
+    }
     if (record.ongoing) {
         Spacer(Modifier.height(8.dp))
         Caption(

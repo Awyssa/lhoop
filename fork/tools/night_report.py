@@ -6,7 +6,7 @@
     fork/tools/night_report.py <backup> --hours 48 --timeline
 
 It prints, for the last --hours of data (36 by default):
-  1. how complete the recording is;
+  1. how complete the recording is, with the hours the strap reported itself off the wrist named as that;
   2. the sleeps in the STRAP'S OWN state, found by the same rules as the app
      (android/app/src/main/java/fork/app/scoring/StrapSleep.kt and SleepDays.kt), with heart rate and
      HRV worked out here from the raw rows, independently of the app and of its core;
@@ -39,6 +39,9 @@ MIN_STRETCH_ASLEEP_S = 20 * 60
 GROUP_GAP_S = 90 * 60    # stretches closer than this are one sleep
 MAX_STILL_LEAD_MIN = 60
 NIGHT_FROM_HOUR, NIGHT_UNTIL_HOUR = 21, 12   # a day's night window: 21:00 the evening before to noon
+OFF_WRIST_SLACK_S = 120  # the samples stop and start within this of the strap's off and on events
+OFF_WRIST_GRACE_S = 60   # a sample this soon after the off event is still the wrist (OffWrist.SAMPLE_GRACE_SEC)
+OFF_WRIST_MIN_S = 600    # shorter stretches are not mentioned (OffWrist.MIN_SPAN_SEC)
 
 # The same per-minute read the app makes (StrapSleepLoader.MINUTES_SQL).
 MINUTES_SQL = """
@@ -160,6 +163,38 @@ def strap_sleeps(db, device, since, before):
     return sleeps
 
 
+def off_wrist(db, device, since, until):
+    """The spans the strap reported itself off the wrist, clipped to [since, until].
+
+    The strap writes a WRIST_OFF event when it comes off and WRIST_ON when it goes back on, and stores no
+    samples in between (fork/docs/03-whoop5-status.md). The rule is the app's (fork/app/OffWrist.kt): an
+    off runs to the next on, or to the first strap sample stamped more than a minute after it if that
+    comes sooner (samples mean it was worn, so a lost on event cannot weld two stretches together); an
+    off inside a stretch already open changes nothing; an on with no off before it is ignored; an off
+    with neither after it runs to [until]. Stretches under ten minutes are the strap being adjusted and
+    are left out, as in the app.
+    """
+    events = db.execute("SELECT ts, kind FROM event WHERE deviceId=? AND ts<=? AND (kind LIKE 'WRIST_OFF%' OR kind LIKE 'WRIST_ON%') "
+                        "ORDER BY ts", (device, until)).fetchall()
+    spans, covered_to = [], None
+    for i, r in enumerate(events):
+        if not r["kind"].startswith("WRIST_OFF") or (covered_to is not None and r["ts"] < covered_to):
+            continue
+        next_on = next((e["ts"] for e in events[i + 1:] if e["kind"].startswith("WRIST_ON")), None)
+        worn = db.execute("SELECT MIN(ts) FROM sleepStateSample WHERE deviceId=? AND ts>? AND ts<=?",
+                          (device, r["ts"] + OFF_WRIST_GRACE_S, until)).fetchone()[0]
+        ends = [t for t in (next_on, worn) if t is not None]
+        covered_to = min(ends) if ends else until
+        spans.append((r["ts"], covered_to))
+    return [(max(a, since), min(b, until)) for a, b in spans if b - a >= OFF_WRIST_MIN_S and b > since and a < until]
+
+
+def covered(gap, spans, slack=OFF_WRIST_SLACK_S):
+    """Whether [spans] account for a gap in the samples, give or take [slack] seconds at its edges."""
+    a, b = gap
+    return sum(max(0, min(b, y) - max(a, x)) for x, y in spans) >= (b - a) - slack
+
+
 def night_day(sleep):
     """The day whose night window (21:00 the evening before to noon) the time in bed overlaps most, or None."""
     end_day = time.localtime(sleep["end"])
@@ -204,8 +239,14 @@ def main():
         print(f"   {table:17} {r['n']:7}  {when(r['lo']) if r['lo'] else '-'} -> {when(r['hi']) if r['hi'] else '-'}")
     ts = [r[0] for r in db.execute("SELECT ts FROM hrSample WHERE deviceId=? AND ts>=? ORDER BY ts", (device, since))]
     gaps = [(a, b) for a, b in zip(ts, ts[1:]) if b - a > 120]
-    print("   heart-rate gaps over 2 minutes:",
-          ", ".join(f"{when(a)}-{when(b)[4:]} ({(b - a) // 60} min)" for a, b in gaps) or "none")
+    off = off_wrist(db, device, since, last)
+    print("   off the wrist, by the strap's own events:",
+          ", ".join(f"{when(a)}-{when(b)[4:]} ({hm(b - a)})" for a, b in off) or "never")
+    print("   heart-rate gaps over 2 minutes with the strap on:",
+          ", ".join(f"{when(a)}-{when(b)[4:]} ({(b - a) // 60} min)" for a, b in gaps if not covered((a, b), off)) or "none")
+    worn = (last - since) - sum(b - a for a, b in off)
+    if worn > 0:
+        print(f"   heart rate recorded for {min(100.0, 100 * len(ts) / worn):.1f}% of the time on the wrist")
 
     print("\n2. Sleeps in the strap's own state, by the app's rules (\"up\" counts, bar the strap's wake confirmation)")
     sleeps = strap_sleeps(db, device, since, last + 1)

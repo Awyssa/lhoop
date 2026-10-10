@@ -13,8 +13,12 @@
 //   display-only flow (smoothed bpm, today's row, streaks, v5 signals).
 //
 // It is an Activity-scoped ViewModel because upstream's driver was one: it starts when the first screen
-// composes, survives rotation, and is cleared with the Activity. Auto-start at boot does not exist
-// upstream and is not added here.
+// composes, survives rotation, and is cleared with the Activity.
+//
+// Four of its steps need no Activity and live in StrapStartup.kt, called from here where their bodies
+// were, so the order is unchanged. Two things there are the app's own and not upstream's: a phone
+// restart runs those four steps without the app being opened (BootReceiver), and every resume brings
+// the foreground service back if Android took it away.
 package fork.app
 
 import android.app.Activity
@@ -59,11 +63,15 @@ class FoundationDriver(app: Application) : AndroidViewModel(app) {
     /** Wakes the scoring loop early on an app resume (842). Conflated: a kick sent mid-pass is kept. */
     private val analyzeKick = Channel<Unit>(Channel.CONFLATED)
 
-    /** Every activity resume: the bond-loop salvage probe, then the scoring kick (852-865). */
+    /**
+     * Every activity resume: the bond-loop salvage probe, then the scoring kick (852-865). After them,
+     * the app's own addition: the foreground service is brought back if it is gone and should not be.
+     */
     private val resumeCallbacks = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityResumed(activity: Activity) {
             ble.salvageProbeIfBondLoopPaused()
             analyzeKick.trySend(Unit)
+            StrapStartup.ensureService(lhoopApp)
         }
         override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
         override fun onActivityStarted(activity: Activity) {}
@@ -74,13 +82,12 @@ class FoundationDriver(app: Application) : AndroidViewModel(app) {
     }
 
     init {
-        // 872: reconcile the live source against the registry's active device. For a WHOOP this pins the
-        // connection to the row's saved address and points sample storage at the row's id.
-        lhoopApp.sourceCoordinator.start()
+        // 872: reconcile the live source against the registry's active device.
+        StrapStartup.reconcileSource(lhoopApp)
         // 876: record an APP_VERSION_CHANGED event on the first launch after an update.
         viewModelScope.launch { recordAppVersionChange() }
         // 880: re-arm the opt-in rolling strap-log file after a process restart.
-        if (LhoopPrefs.detailedCapture(appContext)) ble.setDetailedCapture(true)
+        StrapStartup.rearmDetailedCapture(lhoopApp)
         // 882
         lhoopApp.registerActivityLifecycleCallbacks(resumeCallbacks)
         // 893-920, the bond edge only: remember the strap that bonded so the next launch can reconnect to
@@ -117,12 +124,12 @@ class FoundationDriver(app: Application) : AndroidViewModel(app) {
                 withTimeoutOrNull(ANALYZE_INTERVAL_MS) { analyzeKick.receive() }
             }
         }
-        // 1365: pushed BEFORE the launch reconnect so that reconnect arms the stream once bonded.
-        ble.setKeepStreamForData(continuousHrvEffective())
-        // 1368
-        applyPowerSaving()
+        // 1365 and 1368: the saved link settings, pushed BEFORE the launch reconnect.
+        StrapStartup.pushLinkSettings(lhoopApp)
         // 1372
-        autoReconnectOnLaunch()
+        StrapStartup.reconnectSaved(lhoopApp)
+        // The app's own: keep the home-screen widget's numbers fresh as syncs finish.
+        MorningWidget.watchSyncs(lhoopApp)
     }
 
     /** 240-262. `"lhoop-app"` is upstream's synthetic, non-strap device id for app-level events. */
@@ -166,34 +173,6 @@ class FoundationDriver(app: Application) : AndroidViewModel(app) {
             lhoopApp.onActiveDeviceAdopted(serialId)
             lhoopApp.sourceCoordinator.onActiveDeviceChanged(serialId)
         }
-    }
-
-    /** 1381-1410: push the saved power and sync-speed settings to the Bluetooth client. */
-    private fun applyPowerSaving() {
-        val on = LhoopPrefs.powerSaving(appContext)
-        ble.setConnectionPriorityManagement(
-            enabled = LhoopPrefs.fastHistorySync(appContext),
-            idleThrottleBatteryPct = LhoopPrefs.idleThrottleBatteryPct(appContext),
-        )
-        ble.setFastLinkPhy(LhoopPrefs.fastLinkPhy(appContext))
-        ble.setLowRefreshMode(on && LhoopPrefs.lowRefresh(appContext))
-        ble.setLowBatteryOffloadThrottle(if (on) LhoopPrefs.powerSavingBatteryPct(appContext) else 0)
-        ble.setPauseCaptureOnPowerSave(
-            on && LhoopPrefs.pauseHrvOnPowerSave(appContext),
-            LhoopPrefs.powerSavingBatteryPct(appContext),
-        )
-    }
-
-    /** 1453-1454: the "Continuous HRV capture" preference AND "Keep connected in the background". */
-    private fun continuousHrvEffective(): Boolean =
-        LhoopPrefs.continuousHrv(appContext) && LhoopPrefs.backgroundConnection(appContext)
-
-    /** 1462-1486: reconnect directly to the strap last bonded to, and re-promote the service. */
-    private fun autoReconnectOnLaunch() {
-        val saved = LhoopPrefs.lastDevice(appContext) ?: return
-        if (!LhoopPrefs.backgroundConnection(appContext)) return
-        WhoopConnectionService.start(appContext)
-        ble.reconnectToAddress(saved.first, saved.second)
     }
 
     /**

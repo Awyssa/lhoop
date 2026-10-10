@@ -22,7 +22,9 @@ model fitted to the owner's WHOOP history. It has three tabs: the morning's answ
 each night to look at closely; trends; and the strap's status. The code builds and passes its unit tests. It runs on the owner's phone, where
 connecting, bonding, syncing and exporting were confirmed on the strap. Three nights were recorded by
 the build from before the rename; the renamed build took over on 2026-10-06, with those nights restored
-from a backup, and has not recorded a night of its own yet. One night has been compared with a second
+from a backup, and by 2026-10-09 had recorded three more, each complete. A newer build (the strap link
+coming back after a phone restart, hours off the wrist, a home-screen widget, the app's own icon) is
+built and tested on the Mac and not yet on the phone. One night has been compared with a second
 device and agrees closely. That is far too few to call it validated, and the scores are labelled
 experimental. See [`fork/docs/07-roadmap.md`](fork/docs/07-roadmap.md).
 

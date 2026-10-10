@@ -39,6 +39,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.repeatOnLifecycle
 import com.lhoop.LhoopApplication
 import com.lhoop.ble.LiveState
@@ -54,10 +55,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.util.Date
+import java.time.ZoneId
 
 /** The driver is created by [AppRoot], above the tabs, so it runs whichever tab is showing. */
 @Composable
 fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
+    // The same view model the other tabs read: the strap's wrist events are worked out in one place.
+    val nights: NightsViewModel = viewModel()
+    val wrist = nights.state.collectAsStateWithLifecycle().value.wrist
     val context = LocalContext.current
     val lhoopApp = context.applicationContext as LhoopApplication
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -163,7 +168,11 @@ fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
                     onFailure = { e -> "Nothing was restored: ${e.message}" },
                 )
                 if (restored) {
-                    withContext(Dispatchers.IO) { runCatching { SleepStore.fileIn(context.filesDir).delete() } }
+                    withContext(Dispatchers.IO) {
+                        runCatching { SleepStore.fileIn(context.filesDir).delete() }
+                        // The widget's numbers came from the data just replaced.
+                        runCatching { MorningWidget.clear(context) }
+                    }
                     delay(RESTART_NOTICE_MS)
                     closeForRestart(context)
                 }
@@ -206,6 +215,7 @@ fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
         Line("Battery", batteryText(live))
         Line("Last sync", lastSyncText(live))
         Line("Background service", if (serviceRunning) "running" else "not running")
+        Line("Worn", Insights.worn(wrist, System.currentTimeMillis() / 1000L, ZoneId.systemDefault()))
 
         Text(
             "Rows for the active strap, by sample time",
@@ -221,6 +231,13 @@ fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
                 CountRow(it.label, it.last24h.toString(), it.last7d.toString())
             }
         }
+        // Not a count of rows: the hours the strap reported itself off the wrist, when it stores none.
+        val nowSec = System.currentTimeMillis() / 1000L
+        CountRow(
+            "Off the wrist",
+            Insights.offWristLast(SignalCounts.DAY_SECONDS, wrist, nowSec),
+            Insights.offWristLast(7 * SignalCounts.DAY_SECONDS, wrist, nowSec),
+        )
 
         // Enabled states follow upstream's Live screen (ui/LiveScreen.kt 588-690): Connect while no
         // scan is running, Disconnect while connected, Sync now once the strap can hand over history
@@ -357,14 +374,19 @@ private suspend fun registryModel(lhoopApp: LhoopApplication, activeId: String):
 }
 
 /**
- * Whether [WhoopConnectionService] is running. The service publishes no flag of its own, so this asks
- * the OS: `getRunningServices` is deprecated for other apps' services but still returns the caller's.
+ * Whether [WhoopConnectionService] is running in the foreground, which is what keeps the link up while
+ * the app is in the background. The service publishes no flag of its own, so this asks the OS:
+ * `getRunningServices` is deprecated for other apps' services but still returns the caller's.
+ *
+ * In the foreground, not merely running: on 2026-10-06 Android took the service out of the foreground
+ * a minute before it stopped it, and a demoted service protects nothing. The pill, the Strap tab and
+ * StrapStartup.ensureService all read this one answer.
  */
 @Suppress("DEPRECATION")
 internal fun connectionServiceRunning(context: Context): Boolean {
     val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return false
     return runCatching {
         manager.getRunningServices(Int.MAX_VALUE)
-            .any { it.service.className == WhoopConnectionService::class.java.name }
+            .any { it.service.className == WhoopConnectionService::class.java.name && it.foreground }
     }.getOrDefault(false)
 }

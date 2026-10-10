@@ -2827,6 +2827,11 @@ class WhoopBleClient(
      *  thread (handleDisconnect), so it must be @Volatile for cross-thread visibility. */
     @Volatile
     private var intentionalDisconnect = false
+
+    /** LHOOP addition, read-only: whether the link is down because a teardown asked for it. The app above
+     *  the core reads it to leave a deliberate Disconnect alone when it brings the foreground service back
+     *  (fork/app/StrapStartup.kt). Nothing in the core reads it and nothing can set it from outside. */
+    val intentionallyDisconnected: Boolean get() = intentionalDisconnect
     /// The strap family the user chose to pair, remembered so an auto-reconnect after a
     /// dropout re-scans for the same model instead of falling back to WHOOP 4.0.
     private var selectedModel = WhoopModel.WHOOP4

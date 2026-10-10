@@ -19,6 +19,26 @@ Rules for the code itself are in [`AGENTS.md`](../../AGENTS.md). These notes are
 | [08-runbook.md](08-runbook.md) | How to build, install, pair, read logs and pull data. |
 | [09-background-and-risks.md](09-background-and-risks.md) | What the original app is, how far to trust it, and what to avoid. |
 | [10-app-structure.md](10-app-structure.md) | How is the app put together since the cut to the core? |
+| [11-old-raw-data.md](11-old-raw-data.md) | How fast does the stored data grow, and what are the options? |
+
+## State on 2026-10-09
+
+- **The phone** still runs the build of 2026-10-06. It was looked at that morning after three nights:
+  the same process since the install, connected, every night whole, and the only hole in the recording
+  was the strap off the wrist, which is not a fault ([03-whoop5-status.md](03-whoop5-status.md)).
+- **A new build is ready and is not on the phone.** The strap service comes back when the app is
+  opened and after a phone restart; hours off the wrist are shown; the home screen says how young the
+  recovery baseline is; there is a home-screen widget and an icon of the app's own. It passes the
+  unit tests and builds with the right certificate. The emulator was in use, so none of it has been
+  seen on a screen, and none of it has been tried on the strap. The checks are in
+  [08-runbook.md](08-runbook.md).
+- **Why REM reads high is known, and no fix was made**, because one reference night cannot judge one
+  ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md)). What is needed is the Garmin's Stages
+  view captured each morning ([06-validation-plan.md](06-validation-plan.md)).
+- **Old one-second rows** grow by 28 MB a day worn. The options and a recommendation are in
+  [11-old-raw-data.md](11-old-raw-data.md), for the owner to decide.
+- **Who decided what that day:** the owner asked for the work in one run without being consulted, with
+  open choices put to a second assistant. Those are marked in [02-decisions.md](02-decisions.md).
 
 ## State on 2026-10-06
 

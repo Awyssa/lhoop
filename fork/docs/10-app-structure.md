@@ -73,8 +73,26 @@ What connects the strap:
   default), the driver starts the foreground service and reconnects directly to the saved address.
 - **In the background:** the foreground service keeps the process alive. Reconnecting after a drop, the
   30-second keep-alive and the 15-minute history offload all live in the core.
-- **After a phone restart or a force-stop:** nothing runs until the app is opened. This is upstream's
+- **After a force-stop or an install:** nothing runs until the app is opened. This is upstream's
   behaviour, kept as it was.
+
+Two things here are the app's own and not upstream's, both built on 2026-10-09 and neither yet tried
+on the phone ([08-runbook.md](08-runbook.md)):
+
+- **After a phone restart** the link comes back without the app being opened. `BootReceiver` takes
+  Android's `BOOT_COMPLETED` and runs `StrapStartup.afterBoot`: the four steps of the driver that need
+  no Activity (reconcile the source, re-arm the strap log, push the saved link settings, start the
+  service and reconnect to the saved strap). Those four were moved out of the driver into
+  `StrapStartup.kt` unchanged, and the driver calls them where their bodies were, so a restart drives
+  the strap through exactly what a launch does. The broadcast only arrives once the phone has been
+  unlocked. When the app is opened later the driver runs the same steps again, which is what already
+  happens when the app is swiped away and reopened: the reconnect call returns at once on a live link.
+- **Every time the app comes to the front** it starts the foreground service again if the service is
+  not in the foreground, a strap is saved, the background setting is on and the link was not
+  disconnected on purpose (`StrapStartup.ensureService`). It starts the service and nothing else: no
+  connect call. This is for the day Android takes the service away while the process lives on, which
+  opening the app did not undo before. To know "on purpose" the core's Bluetooth client gained one
+  read-only line, `intentionallyDisconnected`; it is the only edit to `ble/`.
 
 Scoring runs in the core after every offload. The driver's 30-minute pass is a backstop.
 
@@ -113,8 +131,19 @@ owner chose; before that there was one long screen of rows.
   wake times; and the week's numbers as a table.
 - **Every screen has a pill** saying whether the strap is being recorded: "Synced" and when, or "Not
   connected", or "Background recording off" when the link is up and the service that holds it in the
-  background is not. It is there because the app was once down for a while with nothing on the home
-  screen to show it.
+  background is not in the foreground, or "Off the wrist" while the strap has reported itself off and
+  not back on. It is there because the app was once down for a while with nothing on the home screen
+  to show it.
+- **Hours off the wrist** (`OffWrist.kt`, since 2026-10-09) come from the strap's own two events. The
+  night screen draws them as a grey band on the noon-to-noon bar with a key under it, and says so on a
+  night whose time in bed holds one. The home screen has one line under its header while the strap is
+  off, or when last night left no night and the strap was off for an hour or more of it. Trends adds a
+  line to a day with an hour or more off. The Strap tab has a "Worn" line and the hours off in the
+  last 24 hours and 7 days. A stretch counts from ten minutes. A day is noon to noon, named by the
+  date it ends on, everywhere.
+- **While the recovery score leans on fewer than eight earlier nights** the home screen says how many,
+  under the line on what drove it. The sleep card says the need once: the sum it came from shows only
+  when debt or an earlier sleep is in it.
 - `Insights.kt` holds the rules behind what these screens say and draw (pure, unit-tested), `Parts.kt`
   the pieces they are drawn from, `Nights.kt` and `NightsViewModel.kt` what they load. A missing value
   is a dash.
@@ -123,6 +152,27 @@ owner chose; before that there was one long screen of rows.
   Connect, Disconnect, Sync now, Export backup, Import backup and a Debug logging switch. Import backup
   restores a backup through the core's `DataBackup.importFrom`, clears the app's own store of sleeps
   so they are rebuilt from the restored rows, and closes the app; it is disabled while connected.
+
+## The widget and the icon
+
+Both are the app's own, made on 2026-10-09, and neither has been seen on a phone yet.
+
+- **The widget** (`MorningWidget.kt`, four cells by two) shows the newest night: its date, recovery
+  with its word, time asleep, "Deep est.", "REM est." and HRV. It is a plain RemoteViews widget with
+  an XML layout (`res/layout/morning_widget.xml`), chosen because it could not be looked at before
+  going on the phone: each update is one call, and the layout's own texts show if no code has run.
+  It draws only from a small file, `files/fork/morning.json` (`MorningNumbers.kt`), and never touches
+  the Bluetooth client or the database, because Android can start the process just to draw it.
+  `NightsReader` writes that file every time the nights are worked out, for the screens or not, so the
+  widget and the home screen cannot disagree. While a widget is placed, the nights are worked out
+  again whenever a sync finishes; Android also redraws it every half hour. When the stored night is
+  not last night, every figure goes grey and it says "Nothing for last night yet": it always names the
+  night by its date and never calls it "last night", since it can be looked at long after the numbers
+  were worked out. What it says is decided in `MorningFace`, which is pure and unit-tested.
+- **The icon** is a block letter L with a crescent: the end of a night as the app's own strip draws
+  it, a tall asleep block and a low awake one. It is three vector files
+  (`res/drawable/ic_launcher_*.xml`), and both launcher aliases in the manifest draw it. The original
+  app's icon pictures were deleted.
 
 ## Where a night comes from
 
@@ -139,6 +189,8 @@ The rules, and why, are in [04-sleep-recovery-engine.md](04-sleep-recovery-engin
 | `SleepStore.kt` | The app's own store: `files/fork/sleeps.json`, with a rules version. |
 | `scoring/WhoopStyle.kt` | The app's sleep and recovery scores, fitted to how WHOOP scored the owner's history ([05-whoop-scoring-model.md](05-whoop-scoring-model.md)). |
 | `AppSettings.kt` | The one setting: the usual sleep need, 8 hours until changed. |
+| `NightsReader.kt` | The one reader for the process: nights, scores and the hours off the wrist. The screens and the widget both read through it, so they cannot disagree and the stored sleeps are never written from two places at once. |
+| `OffWrist.kt` | The stretches the strap reported itself off the wrist, from its own `WRIST_OFF` and `WRIST_ON` events in the core's `event` table (read-only). Pure Kotlin. |
 
 Nothing is written to the core's database. The store can be deleted at any time: every record is
 worked out again from the strap's rows. The core still detects sleep and scores each day its own way;
@@ -161,6 +213,9 @@ It installs as `com.lhoop.whoop.demo.debug`, beside the real app and with its ow
 under a minute on first launch, and the newest night appears last. `fork/tools/phone_ui.py` reads its
 screens too.
 
+The demo data also holds one made-up stretch off the wrist, early in the afternoon before the newest
+night, so the grey band on that night's bar and the line on Trends can be looked at.
+
 **The emulator may be in use.** The owner's other work shares the one AVD. Look first (`adb devices`,
 `pgrep -fl qemu-system`) and never stop an emulator that was already running. A second instance of the
 same AVD starts with `-read-only -port 5556` and answers as `emulator-5556`; what it changes is thrown
@@ -169,14 +224,28 @@ away when it stops. With the phone attached too, name the device on every `adb` 
 ## The manifest
 
 `android/app/src/full/AndroidManifest.xml` (and an identical copy for the `demo` flavor) merges over
-upstream's manifest and only removes: ten
+the main manifest and only removes: ten
 components whose classes are gone, the `INTERNET` permission, six other permissions nothing uses, the 24
 Health Connect permissions and two package queries. The Bluetooth and foreground-service entries are
 untouched.
 
+What the app adds of its own is declared once, in the main manifest beside the service: the boot
+receiver (`fork.app.BootReceiver`, not exported) and the widget's receiver
+(`fork.app.MorningWidgetReceiver`, exported, as a launcher needs). `ManifestReceiversTest` checks both
+and that no overlay removes them. The widget's texts are in `res/values/morning_widget.xml`, apart
+from `strings.xml`, which is the original app's catalogue and is held to its translations by a test.
+
 ## Status
 
-Built and unit-tested on the Mac: 4,359 tests, with only the two known failures. The three redrawn
+**The build of 2026-10-09** (the service coming back on opening and after a restart, the hours off
+the wrist, the baseline line, the widget, the icon) is built and unit-tested on the Mac: 4,410 tests,
+with only the two known failures, and a release APK with the right certificate. It is not on the
+phone. The emulator was in use, so nothing in it has been seen on a screen: the widget and the icon
+were checked as far as the Mac allows (the icon rendered from its own files; the widget's wording and
+its layout's tags by tests), and the screen changes not at all. Nothing in it has been tried on the
+strap.
+
+**The build on the phone** (2026-10-06) was built and unit-tested with 4,359 tests. The three redrawn
 screens were looked at in an emulator on made-up data on 2026-10-06, each from top to bottom, with a
 night open and its folded sections open; then in an emulator on the newest real backup; then on the
 phone, where the build went on at 23:43 that night and each screen was opened once. That covered the

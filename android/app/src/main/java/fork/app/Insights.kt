@@ -6,6 +6,7 @@
 package fork.app
 
 import fork.app.scoring.NightInput
+import fork.app.scoring.SleepDays
 import fork.app.scoring.SleepRecord
 import fork.app.scoring.StateMinute
 import fork.app.scoring.StrapSleep
@@ -91,7 +92,8 @@ internal object Insights {
 
     /**
      * What the pill says. It only reports what the app can see: whether the link is up, whether the
-     * service that keeps it up in the background is running, and when the last sync finished.
+     * service that keeps it up in the background is running, whether the strap has reported itself
+     * off the wrist and not back on, and when the last sync finished.
      */
     fun strapStatus(
         connected: Boolean,
@@ -100,9 +102,12 @@ internal object Insights {
         nowSec: Long,
         zone: ZoneId,
         locale: Locale = Locale.getDefault(),
+        offWrist: Boolean = false,
     ): StrapStatus {
         if (!connected) return StrapStatus("Not connected", ok = false)
         if (!serviceRunning) return StrapStatus("Background recording off", ok = false)
+        // Not a fault, but said in the same colour: "Synced" would read as recording while nothing is.
+        if (offWrist) return StrapStatus("Off the wrist", ok = false)
         if (lastSyncAt == null) return StrapStatus("Connected", ok = true)
         val offset = zone.rules.getOffset(Instant.ofEpochSecond(lastSyncAt))
         val syncDay = Instant.ofEpochSecond(lastSyncAt).atOffset(offset).toLocalDate()
@@ -195,12 +200,120 @@ internal object Insights {
         return if (earlier.isEmpty()) null else Triple(earlier.min(), earlier.max(), earlier.average())
     }
 
-    /** How the sleep need was put together, such as "8h 0m usual + 25m debt − 35m earlier sleep". */
-    fun needSum(habitualNeedMin: Int, score: WhoopStyleScore): String = buildString {
-        append(Nights.duration(habitualNeedMin.toDouble())).append(" usual")
-        if (score.debtInMin >= 1.0) append(" + ").append(Nights.duration(score.debtInMin)).append(" debt")
-        if (score.napCreditMin >= 1.0) append(" − ").append(Nights.duration(score.napCreditMin)).append(" earlier sleep")
+    /**
+     * How the sleep need was put together, such as "8h 0m usual + 25m debt − 35m earlier sleep". Null
+     * when it is the usual need and nothing else: the line above it on the card has just said that figure.
+     */
+    fun needSum(habitualNeedMin: Int, score: WhoopStyleScore): String? {
+        if (score.debtInMin < 1.0 && score.napCreditMin < 1.0) return null
+        return buildString {
+            append(Nights.duration(habitualNeedMin.toDouble())).append(" usual")
+            if (score.debtInMin >= 1.0) append(" + ").append(Nights.duration(score.debtInMin)).append(" debt")
+            if (score.napCreditMin >= 1.0) append(" − ").append(Nights.duration(score.napCreditMin)).append(" earlier sleep")
+        }
     }
+
+    /**
+     * Said under the recovery score while it leans on fewer earlier nights than it can use: with few of
+     * them one unusual night moves "your usual" and the score swings. Null without a score, and once
+     * the baseline is full. [Usual.nights] is the figure the night screen prints beside "Why".
+     */
+    fun baselineNote(recovery: Double?, usual: Usual): String? {
+        if (recovery == null || usual.nights >= WhoopStyle.BASELINE_NIGHTS) return null
+        return "Based on your last ${usual.nights} night${if (usual.nights == 1) "" else "s"}. A full score uses ${WhoopStyle.BASELINE_NIGHTS}."
+    }
+
+    // --- Off the wrist -------------------------------------------------------------------------------
+
+    /** The key under the noon-to-noon bar, such as "Off the wrist 3h 10m". */
+    fun offWristLegend(seconds: Long): String = "Off the wrist ${Nights.durationSec(seconds)}"
+
+    /** Said on a night whose time in bed holds a stretch off the wrist. No score changes for it. */
+    fun offWristInBed(seconds: Long): String =
+        "The strap was off the wrist for ${Nights.durationSec(seconds)} of this time in bed. " +
+            "It recorded nothing then, so that time shows as awake."
+
+    /** A day's line on Trends, once its stretches add up to an hour. Null below that. */
+    fun offWristDay(seconds: Long): String? =
+        if (seconds >= OffWrist.MENTION_SEC) "Off the wrist for ${Nights.durationSec(seconds)}, noon to noon." else null
+
+    /** "18:40", or "Thu 18:40" when that is not today where the phone is. */
+    fun since(ts: Long, nowSec: Long, zone: ZoneId, locale: Locale = Locale.getDefault()): String {
+        val offset = zone.rules.getOffset(Instant.ofEpochSecond(ts))
+        val day = Instant.ofEpochSecond(ts).atOffset(offset).toLocalDate()
+        val clock = Nights.clock(ts, offset, locale)
+        return if (day == Instant.ofEpochSecond(nowSec).atZone(zone).toLocalDate()) clock
+        else "${DateTimeFormatter.ofPattern("EEE", locale).format(day)} $clock"
+    }
+
+    /**
+     * The one line under the home screen's header, or null. While the strap is off: since when.
+     * Otherwise, when last night has no night and the strap was off for an hour or more of it
+     * (21:00 to noon, as far as its events reach): how long.
+     */
+    fun offWristToday(
+        wrist: NightsViewModel.Wrist,
+        isLastNight: Boolean,
+        logicalToday: LocalDate?,
+        nowSec: Long,
+        zone: ZoneId,
+        locale: Locale = Locale.getDefault(),
+    ): String? {
+        wrist.offNow?.let { return "Off the wrist since ${since(it.fromTs, nowSec, zone, locale)}." }
+        if (isLastNight || logicalToday == null) return null
+        val from = logicalToday.minusDays(1).atTime(LocalTime.of(SleepDays.NIGHT_FROM_HOUR, 0)).atZone(zone).toEpochSecond()
+        val to = logicalToday.atTime(LocalTime.of(SleepDays.NIGHT_UNTIL_HOUR, 0)).atZone(zone).toEpochSecond()
+        val seconds = OffWrist.secondsWithin(wrist.off, from, to, wrist.throughTs)
+        return if (seconds >= OffWrist.MENTION_SEC) "The strap was off the wrist for ${Nights.durationSec(seconds)} of last night." else null
+    }
+
+    /** The Strap tab's "Worn" line. */
+    fun worn(wrist: NightsViewModel.Wrist, nowSec: Long, zone: ZoneId, locale: Locale = Locale.getDefault()): String {
+        val off = wrist.offNow
+        return when {
+            off != null -> "off the wrist since ${since(off.fromTs, nowSec, zone, locale)}"
+            wrist.eventsSeen -> "on the wrist"
+            else -> "no wrist event recorded"
+        }
+    }
+
+    /** Time off the wrist in the [seconds] up to now, for the Strap tab's table. */
+    fun offWristLast(seconds: Long, wrist: NightsViewModel.Wrist, nowSec: Long): String =
+        Nights.durationSec(OffWrist.secondsWithin(wrist.off, nowSec - seconds, nowSec + 1, minOf(wrist.throughTs, nowSec)))
+
+    /**
+     * A night's noon-to-noon window, the one [lastDay] draws, as unix seconds. Null when the night's key
+     * is not a date.
+     */
+    fun lastDayWindow(night: Night): Pair<Long, Long>? =
+        Nights.date(night.day)?.let { OffWrist.dayWindow(it, night.record.offset) }
+
+    /** The stretches off the wrist on a night's noon-to-noon bar, each as (from, to) on a scale of 0 to 1. */
+    fun offWristOnLastDay(night: Night, wrist: NightsViewModel.Wrist): List<Pair<Float, Float>> {
+        val (from, to) = lastDayWindow(night) ?: return emptyList()
+        return OffWrist.within(wrist.off, from, to, wrist.throughTs).map { (a, b) ->
+            ((a - from) / DAY_SEC).toFloat() to ((b - from) / DAY_SEC).toFloat()
+        }
+    }
+
+    /** Seconds off the wrist inside a night's noon-to-noon window. */
+    fun offWristSecondsOnLastDay(night: Night, wrist: NightsViewModel.Wrist): Long {
+        val (from, to) = lastDayWindow(night) ?: return 0L
+        return OffWrist.secondsWithin(wrist.off, from, to, wrist.throughTs)
+    }
+
+    /**
+     * Seconds off the wrist on [day], noon to noon: read in the offset its [night] was slept in when it
+     * has one, so the figure is the bar's, and in the phone's own otherwise.
+     */
+    fun offWristSecondsOn(day: LocalDate, night: Night?, wrist: NightsViewModel.Wrist, zone: ZoneId): Long {
+        val offset = night?.record?.offset ?: zone.rules.getOffset(day.atStartOfDay(zone).toInstant())
+        return OffWrist.secondsOn(day, offset, wrist.off, wrist.throughTs)
+    }
+
+    /** Seconds off the wrist between a night's going still and its end. */
+    fun offWristSecondsInBed(night: Night, wrist: NightsViewModel.Wrist): Long =
+        OffWrist.secondsWithin(wrist.off, night.record.sleep.bedStartTs, night.record.sleep.endTs + 1, wrist.throughTs)
 
     // --- The night, drawn ----------------------------------------------------------------------------
 
@@ -253,8 +366,7 @@ internal object Insights {
      * as (from, to) on a scale of 0 to 1. Anything outside those 24 hours is cut off at the edge.
      */
     fun lastDay(night: Night): List<Pair<Float, Float>> {
-        val day = Nights.date(night.day) ?: return emptyList()
-        val from = day.minusDays(1).atTime(LocalTime.NOON).toEpochSecond(night.record.offset)
+        val from = lastDayWindow(night)?.first ?: return emptyList()
         fun place(r: SleepRecord): Pair<Float, Float>? {
             val a = ((r.sleep.bedStartTs - from) / DAY_SEC).coerceIn(0.0, 1.0)
             val b = ((r.sleep.endTs + 1 - from) / DAY_SEC).coerceIn(0.0, 1.0)

@@ -95,6 +95,13 @@ class StrapSleepBackupCheckTest {
             }
         }
 
+    /** The app's own read of the strap's wrist events (`NightsReader.offWrist`): the same SQL constant. */
+    private fun Connection.wristEvents(deviceId: String, from: Long, to: Long): List<WristEvent> =
+        prepareStatement(OffWrist.EVENTS_SQL).use { st ->
+            st.setString(1, deviceId); st.setLong(2, from); st.setLong(3, to)
+            st.executeQuery().use { rs -> buildList { while (rs.next()) OffWrist.event(rs.getLong(1), rs.getString(2))?.let(::add) } }
+        }
+
     /** As the phone does it: a refresh every [stepSec] from the first row to the last, each seeing only what had arrived. */
     private fun steppedRefresh(db: Connection, deviceId: String, first: Long, last: Long, stepSec: Long): List<SleepRecord> {
         var stored = emptyList<SleepRecord>()
@@ -209,6 +216,41 @@ class StrapSleepBackupCheckTest {
                     ),
                 )
             }
+            // The hours the strap reported itself off the wrist, and whether it stored anything in them.
+            val first = (db.one("SELECT MIN(ts) FROM sleepStateSample WHERE deviceId = ?", deviceId) as Number).toLong()
+            val eventsThrough = (db.one(OffWrist.NEWEST_EVENT_SQL, deviceId, Long.MAX_VALUE) as Number).toLong()
+            val allStretches = OffWrist.spans(db.wristEvents(deviceId, first, through)) { after ->
+                (db.one(OffWrist.FIRST_STATE_SQL, deviceId, after, Long.MAX_VALUE) as Number?)?.toLong()
+            }
+            val offWrist = OffWrist.mentionable(allStretches, eventsThrough)
+            println("Off the wrist since the first row: ${allStretches.size} stretch(es) by the strap's events, ${offWrist.size} of ten minutes or more")
+            OffWrist.within(offWrist, first, through + 1, throughTs = eventsThrough).forEach { (from, to) ->
+                // A minute's grace at each end: the samples stop and start within seconds of the events, not on them.
+                val inside = (db.one("SELECT COUNT(*) FROM hrSample WHERE deviceId = ? AND ts > ? AND ts < ?", deviceId, from + 60, to - 60) as Number).toLong()
+                println("  %s -> %s (%s), heart-rate rows inside: %d".format(at(from), at(to), hm(to - from), inside))
+            }
+            offWrist.zipWithNext().forEach { (a, b) -> assertTrue("off-wrist stretches overlap", a.toTs != null && a.toTs <= b.fromTs) }
+            offWrist.forEach { assertTrue(it.toTs == null || it.toTs >= it.fromTs) }
+
+            // The stage split beside the second device's, for the nights that have a capture of its sleep page.
+            val garmin = GarminCapture.nights(File("../../whoop-data/garmin"))
+            println("Stages against the Garmin: ${garmin.size} captured night(s). Both are estimates.")
+            assigned.days.forEach { day ->
+                val theirs = garmin[day.day] ?: return@forEach
+                val vitals = day.night.vitals
+                val asleepMin = day.night.sleep.asleepSec / 60
+                val deep = vitals?.deepSec?.div(60)
+                val rem = vitals?.remSec?.div(60)
+                println(
+                    "  %s app asleep %s, deep %s min, REM %s min, light %s min | Garmin asleep %s, deep %d min, REM %d min, light %d min, awake %s min%s".format(
+                        day.day, Nights.duration(asleepMin.toDouble()), deep ?: "-", rem ?: "-",
+                        if (deep != null && rem != null) asleepMin - deep - rem else "-",
+                        Nights.duration(theirs.asleepMin.toDouble()), theirs.deepMin, theirs.remMin, theirs.lightMin, theirs.awakeMin ?: "-",
+                        if (kotlin.math.abs(theirs.asleepMin - asleepMin) > 45) " | they disagree on the sleep itself, so the stages are not comparable" else "",
+                    ),
+                )
+            }
+
             assertTrue(scored.size == assigned.days.size)
             scored.zip(assigned.days).forEach { (s, day) ->
                 assertTrue(s.napCreditMin == day.naps.sumOf { it.sleep.asleepSec } / 60.0)

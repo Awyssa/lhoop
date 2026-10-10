@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The texts of LHOOP's own home-screen widget (fork/app/MorningWidget.kt), which the layout shows
+     before any code has run. English only, like the app's own screens, and kept apart from
+     strings.xml: that file is the original app's catalogue, which a test holds to its translations. -->
+<resources>
+    <string name="morning_widget_description" translatable="false">The newest night: recovery, hours asleep, deep, REM and HRV.</string>
+    <string name="morning_widget_dash" translatable="false">—</string>
+    <string name="morning_widget_no_night" translatable="false">No night yet</string>
+    <string name="morning_widget_asleep" translatable="false">Asleep</string>
+    <string name="morning_widget_deep" translatable="false">Deep est.</string>
+    <string name="morning_widget_rem" translatable="false">REM est.</string>
+    <string name="morning_widget_hrv" translatable="false">HRV</string>
+</resources>

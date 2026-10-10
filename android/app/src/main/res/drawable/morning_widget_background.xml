@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget's card: the app's own card colour and corner (fork/app/Theme.kt, Parts.kt Panel). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#181D26" />
+    <corners android:radius="22dp" />
+</shape>

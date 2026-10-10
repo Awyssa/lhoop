@@ -275,6 +275,44 @@ minutes more than the Garmin's, where under the first rule it was nine minutes l
 **Not checked.** Any night beyond these three. One wearer, three nights and one disputed evening is
 not validation, however well it has gone.
 
+## Why the REM reads high, and why deep looks steady (2026-10-09)
+
+Looked into with `fork/tools/stage_whatif.py`, a line-for-line port of the stager that reproduces the
+app's split exactly on all seven sleeps recorded by then, and can switch one term off at a time.
+
+How the stager decides (`SleepStagerV2.stageEpochs`). Each 30 seconds gets a score for deep, REM,
+light and awake, and a smoothing pass picks the path. **Light has no evidence of its own:** its score
+is its base rate, a constant. **REM's score** is its base rate, which starts it 0.82 below light,
+plus four terms measured against the night's own average (heart-rate variability, heart-rate level,
+stillness and how irregular the breathing looks in the beat intervals), **plus a rise with time of
+night that reaches +1.0 by the end of the sleep.** Every constant is hand-picked upstream, not fitted.
+
+What that does on this strap and this wearer:
+
+- **The rise with time of night carries most of the REM.** Switched off, REM falls to about a quarter
+  of what the app shows. Halved, it falls to about three fifths. In the epochs called REM it is the
+  largest term in six of the seven sleeps, and by itself it makes up two thirds or more of REM's
+  handicap against light. Late in a sleep an epoch with merely average evidence is called REM.
+- **The breathing term is the second lever.** Without it REM falls by nearly half. It is zero on
+  average, so it adds no REM by itself: it adds spread to a score that sits just under the line, and
+  spread puts more epochs over it. The same goes for the heart-rate-variability term.
+- **The window is not the cause.** Giving the stager half an hour to two hours of waking time on
+  either side of the sleep, as its authors' test data had, does not bring the REM down: on average
+  it rises by a few points.
+- **Deep is pinned.** The stager lets an epoch be deep only in the quarter of the sleep with the
+  flattest heart rate, and nearly always fills that quarter: deep came to between a quarter and three
+  tenths of all seven sleeps, an afternoon one included. No change to a REM term moves it; only the
+  breathing term, which feeds deep as well, does. That it agrees with the wearer's WHOOP history is
+  partly the recipe's doing. It cannot show a night with little deep sleep.
+
+**No fix has been made, on purpose.** There is one night with a comparable reference (the Garmin's
+stage totals for 6 October; on 5 October the two devices disagree about the sleep itself). Cutting
+the rise from 1.0 to 0.7, lowering REM's base rate from 0.22 to 0.18, and dropping the breathing term
+each land within about twenty minutes of that night's REM, by three different routes. One night
+cannot choose between them, and a change picked that way would be fitted to a single point
+([06-validation-plan.md](06-validation-plan.md), "What a stage fix needs"). The screen still shows
+the shipped split and still says "estimate, REM reads high".
+
 ## Tests
 
 The Android unit tests run about 4,300 cases since the cut. Two `RecoveryDriversTest` cases fail on

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Fork-owned manifest overlay. It merges over src/main/AndroidManifest.xml, which stays byte-identical
-  to upstream, and only REMOVES things the cut build no longer has code for.
+  Fork-owned manifest overlay. It merges over src/main/AndroidManifest.xml and only REMOVES things the
+  cut build no longer has code for. What the app adds of its own (the boot receiver and the home-screen
+  widget, both under fork.app) is declared in the main manifest, once, and must never be removed here:
+  ManifestReceiversTest checks it.
 
   There are two identical copies, one per flavor: src/full/ (the real app) and src/demo/ (synthetic
   data, for running the UI in an emulator). Change both together; ManifestOverlayCopiesTest checks it.

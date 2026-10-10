@@ -248,6 +248,33 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice|location" />
 
+        <!-- LHOOP's own, not the original app's: after a phone restart, bring the strap link back
+             without the app being opened (fork/app/BootReceiver.kt). Not exported; the system's
+             BOOT_COMPLETED still reaches it. It is declared here and not in the flavor overlays, which
+             only remove things. -->
+        <receiver
+            android:name="fork.app.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- LHOOP's own home-screen widget: the newest night's recovery, hours asleep, deep, REM and
+             HRV (fork/app/MorningWidget.kt). exported=true is required so the launcher can deliver
+             APPWIDGET_UPDATE; it draws only from a small file of the app's own. -->
+        <receiver
+            android:name="fork.app.MorningWidgetReceiver"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/morning_widget_info" />
+        </receiver>
+
         <!-- Wrist alerts: this is what makes LHOOP appear in Android's Notification Access list. The
              system binds it (guarded by BIND_NOTIFICATION_LISTENER_SERVICE) only after the user grants
              access; it reads which app posted a notification — never the content — to buzz the strap,

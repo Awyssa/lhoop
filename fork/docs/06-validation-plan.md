@@ -60,11 +60,40 @@ weights it toward the last deep-sleep period. Compare like with like.
   would show for them, with the other sleeps counted and with them left out. It is the start of the
   replay harness: it prints no reference beside them.
 
+  Since 2026-10-09 it also prints each night's deep, REM and light beside the Garmin's, for every
+  night that has a capture of the Garmin's Stages view (`GarminCapture`, test-side).
 - **`fork/tools/capture_garmin.sh`** saves the Garmin Connect sleep page off the phone's screen, as
   screenshots and text.
+- **`fork/tools/stage_whatif.py`** is a port of the core's stager for trying changes to it. Over a
+  backup it prints the split as shipped (which must equal the app's), the REM share with one term of
+  the recipe changed at a time, where the REM falls and which terms carried it, and with `--garmin`
+  the Garmin's split beside the app's.
 
 Still missing: the Garmin's sleep times in a form a tool can read (they are only in a picture), and a
 reference beside the scores in the replay.
+
+## What a stage fix needs
+
+The stager's REM reads high and the reason is known
+([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md), "Why the REM reads high"). What is
+missing is the means to tell a good fix from a lucky one. On 2026-10-09 there was one comparable
+reference night.
+
+- **More nights with the Garmin's Stages view captured:** about fourteen, short and long ones among
+  them, and not all from the same week. Each morning, with last night's sleep page open in Garmin
+  Connect, `fork/tools/capture_garmin.sh` saves it; the Stages view is the part that counts. A night
+  missed can still be captured later: step back to it on the page and run the script with a name.
+- **Split them before looking.** Choose the change on half of the nights and judge it on the other
+  half, which must not have been looked at while choosing. The odd-numbered dates and the even ones
+  will do.
+- **Judge by more than the total.** REM minutes against the Garmin's on the held-out nights, the
+  spread of that difference, and whether nights with more REM by the Garmin get more from the app:
+  a change that only shrinks every night by the same share has fixed the average and nothing else.
+- **Remember what the reference is.** The Garmin's stages are estimates. Agreeing with it is not being
+  right; disagreeing by a factor of two on every night is still worth fixing. A lab-scored dataset
+  (the table above) is what could say more, for a wrist in general and not for this one.
+- **Deep needs the same.** It comes out near the same share of every sleep by the recipe's
+  construction, so its agreement so far proves little.
 
 ## Expectations
 

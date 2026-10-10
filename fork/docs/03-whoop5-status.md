@@ -68,13 +68,28 @@ history taken by the original app never reaches WHOOP's app and the other way ro
   firmware has not been seen here.
 - **The link holds in the background.** The app ran for 16 hours, overnight with the phone locked,
   without a restart, a crash or a hole in the data.
+- **Off the wrist it stores no samples, and it says when.** The strap logs a `WRIST_OFF` event when it
+  is taken off and `WRIST_ON` when it goes back on. Between the two it keeps writing events and
+  battery readings and no one-second rows at all, so the day has a hole of exactly that length in
+  heart rate, gravity, skin temperature and sleep state. Checked on 2026-10-09 against every such
+  stretch of ten minutes or more in the first week (five, from eleven minutes to most of a day): not
+  one heart-rate row falls inside any of them (a minute in from each end), and on the one looked at
+  to the second the samples stop and start within a second of the two events. A hole bounded by them
+  is not a fault. Since that day the app and `night_report.py`
+  name it "off the wrist" (`fork/app/OffWrist.kt`).
+- **It recovers from hours out of range, and brings everything back.** Over the first three days under
+  LHOOP the strap's own log shows the link down for more than two hours three times, once for a whole
+  sleep. Each time the app reconnected without being opened, and every second recorded while the link
+  was down arrived afterwards. Shorter drops, most under a minute, came several times a day.
+- **The strap's battery lasts about two and a half weeks.** It fell just under 6% a day over those
+  three days, worn day and night bar the hours above.
 - **The cut build behaves like the original on the link.** Installed over the original on the Pixel 9a,
   it connected by itself, showed an encrypted bond, synced, exported, and re-bonded after a manual
   Disconnect and Connect in about ten seconds.
 
 ## Open: to check on this strap
 
-- **Recovery after Bluetooth is toggled or the strap goes out of range.**
+- **Recovery after Bluetooth is toggled.** Out of range and back is covered above.
 - **How the strap's state behaves on more nights.** State 3 ("up") begins with movement during a sleep
   and ends when the strap confirms the wearer asleep again or awake. The owner slept through one long
   run of it, so the app counts it as sleep, less the strap's wake confirmation. Three nights is not

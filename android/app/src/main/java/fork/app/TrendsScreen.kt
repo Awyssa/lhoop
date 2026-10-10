@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -80,7 +81,10 @@ internal fun TrendsScreen(
             return@Column
         }
         WeekStrip(week, pickedDay, onPick = { picked = it.toString() })
-        DaySummary(pickedDay, week.firstOrNull { it.first == pickedDay }?.second, onOpenNight)
+        val offWristSec = remember(pickedDay, state.nights, state.wrist) {
+            Insights.offWristSecondsOn(pickedDay, state.nights.firstOrNull { it.day == pickedDay.toString() }, state.wrist, ZoneId.systemDefault())
+        }
+        DaySummary(pickedDay, week.firstOrNull { it.first == pickedDay }?.second, Insights.offWristDay(offWristSec), onOpenNight)
         ProgressPanel(remember(points, today) { Insights.progress(points, today) })
 
         Panel {
@@ -189,7 +193,7 @@ private fun WeekStrip(week: List<Pair<LocalDate, TrendPoint?>>, picked: LocalDat
 
 /** The picked day's headline figures, and the way into its night. */
 @Composable
-private fun DaySummary(day: LocalDate, point: TrendPoint?, onOpenNight: (String) -> Unit) {
+private fun DaySummary(day: LocalDate, point: TrendPoint?, offWrist: String?, onOpenNight: (String) -> Unit) {
     Panel {
         val band = Nights.band(point?.recovery)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -199,6 +203,7 @@ private fun DaySummary(day: LocalDate, point: TrendPoint?, onOpenNight: (String)
         if (point == null) {
             Spacer(Modifier.height(8.dp))
             Caption("No night is recorded for this day.")
+            offWrist?.let { Caption(it) }
             return@Panel
         }
         Spacer(Modifier.height(10.dp))
@@ -206,6 +211,10 @@ private fun DaySummary(day: LocalDate, point: TrendPoint?, onOpenNight: (String)
             Headline(Nights.whole(point.recovery, "%"), "Recovery", if (band == null) Ink.text else bandColor(band), Modifier.weight(1f))
             Headline(Nights.whole(point.sleepScore), "Sleep score", Ink.text, Modifier.weight(1f))
             Headline(Nights.duration(point.asleepMin), "Asleep", Ink.text, Modifier.weight(1.3f))
+        }
+        offWrist?.let {
+            Spacer(Modifier.height(8.dp))
+            Caption(it)
         }
         TextButton(onClick = { onOpenNight(day.toString()) }, modifier = Modifier.padding(top = 2.dp)) {
             Text("Open this night", fontSize = 14.sp, color = Ink.sleep)

@@ -61,7 +61,8 @@ The phone is where real loss can happen: it holds every recorded night, and a ba
 
 - **The phone runs LHOOP** (`com.lhoop.whoop.staging`) since the evening of 2026-10-06. It holds every
   recorded night and it is the app connected to the strap. A build of this code installs over it when
-  it is signed with the same key.
+  it is signed with the same key. The build on it is from that evening; a newer one, made on
+  2026-10-09, waits for the owner and its checks ([`fork/docs/08-runbook.md`](fork/docs/08-runbook.md)).
 - **The app it replaced is gone.** The owner uninstalled it that evening, so LHOOP is the only app on
   the phone that talks to the strap. Keep it that way: a build with another package name installs
   beside LHOOP, reconnects by itself and takes records LHOOP then never gets. How the data came
@@ -82,8 +83,8 @@ Kotlin sources are under `android/app/src/main/java/`.
 | Other kept files | 15 small files under `com/lhoop/ui/`, `ingest/`, `testcentre/` (settings objects, units, the raw-sensor export, the test-centre switches) | Also from the original app. |
 | Stand-ins | `fork/standins/` | They declare, in the core's packages, the symbols the core still expects from removed code. |
 | The app | `fork/app/` | The driver that starts the core, the screens, and under `scoring/` how a night is found and scored. New work goes here. |
-| Manifest overlay | `android/app/src/full/AndroidManifest.xml` | It only removes things from the main manifest. |
-| Project tooling and notes | `fork/` | `fork/tools/` holds the morning routine: `pull_night.sh`, `night_report.py` and `capture_garmin.sh`. |
+| Manifest overlay | `android/app/src/full/AndroidManifest.xml` | It only removes things from the main manifest. What the app adds (the boot receiver, the widget) is declared in the main manifest. |
+| Project tooling and notes | `fork/` | `fork/tools/` holds the morning routine: `pull_night.sh`, `night_report.py` and `capture_garmin.sh`, and `stage_whatif.py` for trying changes to the stager. |
 
 What each core layer holds: `protocol/` parses frames and decodes records (pure Kotlin); `ble/` is the
 connection, bonding, history offload and the foreground `WhoopConnectionService`; `data/` is the Room
@@ -137,7 +138,15 @@ read about twice what it should. Do not present either as measured, and do not f
 
 `fork/app/FoundationDriver.kt` and `ScoringPass.kt` do what the original app's UI layer did to start the
 core: the launch reconnect, the foreground service, the saved link settings and the backstop scoring
-pass. It is a faithful copy of that behaviour, with line references in the files.
+pass. It is a faithful copy of that behaviour, with line references in the files. The four of its
+steps that need no Activity live in `StrapStartup.kt` and are called from the driver where their
+bodies were.
+
+Two things there are LHOOP's own and not the original's: after a phone restart `BootReceiver` runs
+those four steps without the app being opened, and every time the app comes to the front the
+foreground service is started again if Android took it away. Neither sends anything new to the strap.
+For the second, the core's Bluetooth client carries one read-only line of ours,
+`intentionallyDisconnected`.
 
 Anything that changes **what is sent to the strap, or when**, is a Bluetooth change: it needs the checks
 in [`fork/docs/08-runbook.md`](fork/docs/08-runbook.md) on the real strap. Never add destructive
@@ -152,7 +161,7 @@ Prerequisites: JDK 17+ (JDK 21 works), the Android SDK with platform 35, and `AN
 
 ```bash
 cd android
-ANDROID_HOME=~/Library/Android/sdk ./gradlew testFullDebugUnitTest          # about 4,330 JVM tests
+ANDROID_HOME=~/Library/Android/sdk ./gradlew testFullDebugUnitTest          # about 4,400 JVM tests
 ANDROID_HOME=~/Library/Android/sdk ./gradlew assembleFullRelease -PstagingRelease   # installable APK
 ```
 

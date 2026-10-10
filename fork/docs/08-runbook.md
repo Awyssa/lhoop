@@ -13,6 +13,10 @@ first:
   one to go back to.
 - **A build of this code installs over the app on the phone**, as long as it is signed with the same
   key. See "Install on the phone".
+- **A third LHOOP build is ready and is NOT on the phone.** Built on 2026-10-09 and kept as
+  `lhoop-2026-10-09-ready.apk` beside the others (same certificate as the app on the phone, checked).
+  It changes when the strap service starts, so it needs the hardware checks: see "The build of
+  9 October" under "Hardware checks". Nothing in it has been seen on a screen or tried on the strap.
 - **The app it replaced is gone.** The owner uninstalled it on the evening of 2026-10-06. LHOOP is the
   only app on the phone that talks to the strap. Never install a build with the old package name
   beside it: two apps must not both hold the strap (see "Moving to the renamed app" below for what
@@ -127,6 +131,62 @@ To roll back, install the previous APK the same way.
 
 ## Hardware checks for a build that changes strap behaviour
 
+### The build of 9 October: built, not installed, nothing tried
+
+This build changes **when** the strap service starts and when the launch sequence runs. It sends
+nothing new to the strap: no new command, no new way of connecting. What is new
+([10-app-structure.md](10-app-structure.md), "The driver"):
+
+- Opening the app starts the foreground service again if Android took it away while the process
+  lived on, unless the link was disconnected on purpose.
+- After a phone restart the app reconnects by itself once the phone has been unlocked, without being
+  opened.
+- A home-screen widget, the hours off the wrist on every screen, a line under the recovery score
+  while its baseline is short, and the app's own icon.
+
+It was verified by reading, 4,410 unit tests (the two known failures only) and a release build with
+the right certificate and both new components in its manifest. It could not be rehearsed in an
+emulator, which was in use, and it was not installed. So **every screen change will be seen for the
+first time on the phone**, and three things are assumed and not yet shown: that the restart broadcast
+reaches the app on this phone, that this Android version lets it start the service from there, and
+that Android reports a demoted service as not in the foreground.
+
+Before installing: export a backup and pull it (`fork/tools/pull_night.sh`), and keep
+`lhoop-2026-10-06-screens.apk` to go back to. Then, in this order:
+
+1. **Checks 1 to 4 below**, as for any build. On the Strap tab, "Background service" must read
+   "running": that line now means running in the foreground, so "not running" straight after a
+   connect would mean the third assumption above is wrong, not that recording has stopped. Tell the
+   assistant before doing anything else in that case.
+2. **The screens, once each.** Today: the recovery card says "Based on your last N nights. A full
+   score uses 8." while N is under 8, and the sleep card says the need once when there is no debt.
+   A night that has hours off the wrist between its two noons shows a grey band on "Noon to noon" and
+   a key under it (`whoop-data/NOTES.md` says which night has one). Trends: that day's
+   summary says "Off the wrist for …, noon to noon." Strap: a "Worn" line, and "Off the wrist" as the
+   last row of the table.
+3. **The icon** in the launcher: a blue block and a grey block making an L, with a crescent.
+4. **The widget.** Long-press the home screen, Widgets, LHOOP, and place it. It should show last
+   night's date, recovery, time asleep, "Deep est.", "REM est." and HRV, the same figures as Today.
+   Tapping it opens the app. If it says "Can't load widget", remove it and tell the assistant.
+5. **Check 7 both ways**, because Disconnect must still stay down. Disconnect on the Strap tab, press
+   Home, open the app again: still down, no notification. Connect. Then Disconnect from the
+   notification, open the app: still down. Connect. Last: Disconnect, tap Import backup, cancel the
+   file picker: still down. Connect.
+6. **A restart.** Restart the phone, unlock it, and do not open LHOOP. Within two minutes the strap
+   notification should appear. Then open the app: connected, bonded, "Synced" a moment ago. With the
+   phone on USB the log should show "Auto-reconnecting to your saved WHOOP 5.0 / MG…" once, before the
+   app was opened. If no notification appears, opening the app brings everything back as before, and
+   the first or second assumption above is wrong.
+7. **A night**, unopened: check 8.
+8. **Optional, and it costs a gap that the next sync fills: the incident itself.** Settings → Apps →
+   LHOOP → App battery usage: flip "Allow background usage" off and on, choose Unrestricted again,
+   return to the app. Without a tap the Strap tab should read "Background service: running" and the
+   notification should be back, under the same process id. Until this build that needed a forced stop.
+9. **Optional:** restart with Bluetooth off, unlock, then turn Bluetooth on: it should connect unopened.
+
+If any of 1, 5 or 6 goes wrong in a way that leaves the strap unconnected, install
+`lhoop-2026-10-06-screens.apk` over it: the data is untouched either way.
+
 Results for the build of 3 October 2026: checks 1, 2, 3, 4, 7 and 9 passed on 2026-10-03, and
 checks 5 and 8 on the first night (3 to 4 October): 16 hours in the background and a complete night.
 Checks 6 and 10 have not been run. The strap used 4% of its battery over that night.
@@ -143,6 +203,20 @@ three screens with no error. On the phone a backup was exported and checked firs
 installed over the app at 23:43. It reconnected by itself a second after the install and synced
 (checks 1 to 4); its screens showed the same night as the replay on the Mac; its battery setting
 carried over; and two and a half minutes in the background left it connected with its service running.
+
+That build was looked at again on the morning of 2026-10-09, after three nights. It was still the
+process started by the install, 2 days and 7 hours earlier, with its service in the foreground and
+its battery setting unchanged; Android recorded no exit of it. So on LHOOP:
+
+- 5 passed: connected and syncing in the background for the whole of that time, with no tap.
+- The out-of-range half of 6 passed: the link was down for hours three times and came back by itself
+  ([03-whoop5-status.md](03-whoop5-status.md)). The Bluetooth toggle has still not been tried.
+- 8 passed three times: each night is whole, to the second, and matches the Mac's replay.
+- 10: since its last full charge the phone had spent under 1% of the power it used on LHOOP. The
+  strap's own drain is in [03-whoop5-status.md](03-whoop5-status.md).
+- Still not run on LHOOP: the Bluetooth half of 6, and the Disconnect half of 7.
+
+The one hole in those three days was the strap off the wrist, which is not a fault (same page).
 
 **LHOOP** (the build of 6 October, 18:48) changed nothing in how the app talks to the strap either, but
 it is a new install with fresh settings, so the checks were run again after the move on 2026-10-06:
@@ -179,8 +253,10 @@ it is a new install with fresh settings, so the checks were run again after the 
 | 9 | Export works | Export backup proposes `lhoop-backup-<date>.lhoopbak` and says "Backup exported." The file is a zip holding `lhoop-backup.sqlite`. (A build from before the rename used its old name in all three.) |
 | 10 | Battery | Strap and phone drain over a night is about what it was on the original build. |
 
-After a phone restart or a force-stop, nothing records until the app is opened once. That is upstream's
-behaviour and is not a failure.
+On the build that is on the phone (6 October), nothing records after a phone restart or a force-stop
+until the app is opened once; that is upstream's behaviour. From the build of 9 October a restart
+brings the link back by itself once the phone has been unlocked. A force-stop still needs the app
+opened: Android delivers nothing to an app it was told to stop. So does an install.
 
 Installing the cut build over the original silently drops anything the original had set up outside the
 core: placed widgets, wrist notifications, a phone alarm or wind-down reminder, daily auto-backup and
@@ -197,14 +273,18 @@ Health Connect access.
   twice: each time Android took the strap service out of the foreground at once and froze the app
   ten seconds later, and the first time it stopped the service after a minute. Switching back on did
   not undo any of it, and nor did choosing Unrestricted straight afterwards.
-- **After that, LHOOP has to be started again**: stop it and open it (`adb shell am force-stop`, then
-  launch), or tap Connect on the Strap tab. Opening it is not enough: the app starts its strap service
-  when its process starts and when Connect is tapped, not when it is brought to the front. "Background
-  service: not running" on the Strap tab is the sign. What it missed while down was fetched from the
-  strap on reconnecting both times; nothing was lost. With Unrestricted set and the app started again,
-  it stayed connected in the background with its service in the foreground (checked for the first few
-  minutes; the long check is number 5 under "Hardware checks").
-- Open the app once after every phone restart or app update.
+- **After that, the build on the phone (6 October) has to be started again**: stop it and open it
+  (`adb shell am force-stop`, then launch), or tap Connect on the Strap tab. Opening it is not enough
+  on that build: it starts its strap service when its process starts and when Connect is tapped, not
+  when it is brought to the front. "Background service: not running" on the Strap tab is the sign.
+  What it missed while down was fetched from the strap on reconnecting both times; nothing was lost.
+  With Unrestricted set and the app started again, it stayed connected in the background with its
+  service in the foreground (checked for the first few minutes; the long check is number 5 under
+  "Hardware checks").
+- **From the build of 9 October, opening the app is enough**: every time it comes to the front it
+  starts the service again if the service is not in the foreground and the link was not disconnected
+  on purpose. Built for exactly this; not yet tried on the phone.
+- Open the app once after every app update, and on the build of 6 October after every phone restart.
 
 ## Working on the phone over USB
 
@@ -270,7 +350,8 @@ prints the names). Both tools read a backup whatever the app that wrote it was c
 prints how complete the
 recording is, the sleeps in the strap's own state by the app's rules, with heart rate and HRV worked
 out independently from the raw data, the core's sessions beside them, and what the core stored. Add
-`--hours 90` to see several nights.
+`--hours 90` to see several nights. Hours the strap reported itself off the wrist are listed as that,
+and a gap in the samples is called a gap only when the strap was on.
 
 Then compare with the app: its Today tab should show the same time in bed, time asleep and awake
 time as the report's newest night, HRV within a millisecond or so, and resting heart rate within a beat
@@ -304,6 +385,18 @@ a name, for example `fork/tools/capture_garmin.sh night-before`.
 
 The scrolling part ran on the real page on 6 October. The Stages part was done by hand that day; the
 script's version of it has not run yet.
+
+With the Stages view captured, the stage split can be put beside the Garmin's:
+
+```bash
+fork/tools/stage_whatif.py whoop-data/lhoop-backups/night-$(date +%Y-%m-%d) --garmin whoop-data/garmin
+```
+
+It prints the app's deep, REM and light for every sleep in the backup (they must equal what the app
+and the replay test show), what REM would be with one term of the stager changed, and the Garmin's
+split for the nights that have a capture. The replay test prints the same comparison from the app's
+own code. The Stages capture each morning is what the REM work is waiting on
+([06-validation-plan.md](06-validation-plan.md), "What a stage fix needs").
 
 ## Getting a night off the phone
 
