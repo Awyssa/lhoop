@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug builds only. As the release file, plain HTTP is refused, with one exception: 10.0.2.2, which
+  inside an Android emulator is the machine the emulator runs on. That is where the backup server
+  runs when the app's upload is tried out (fork/docs/12-server-backup.md). A phone has no such host.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

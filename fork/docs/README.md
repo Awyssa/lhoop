@@ -20,23 +20,46 @@ Rules for the code itself are in [`AGENTS.md`](../../AGENTS.md). These notes are
 | [09-background-and-risks.md](09-background-and-risks.md) | What the original app is, how far to trust it, and what to avoid. |
 | [10-app-structure.md](10-app-structure.md) | How is the app put together since the cut to the core? |
 | [11-old-raw-data.md](11-old-raw-data.md) | How fast does the stored data grow, and what are the options? |
+| [12-server-backup.md](12-server-backup.md) | How will the data be backed up to the owner's server? The plan, and how far it is built. |
+
+## State on 2026-10-10
+
+- **The phone is unchanged:** it runs the build of 2026-10-09 and has no network code.
+- **A backup to the owner's own server is built and not deployed.** The server is `fork/server/`, in
+  Go at the owner's wish; the app's side is `fork/app/backup/`; the design and every test result are
+  in [12-server-backup.md](12-server-backup.md). On the Mac a real backup went up and came back
+  identical, also with the server in its container. In an emulator the demo app backed up to the
+  server, restored from it, and matched it table for table.
+- **The working tree is ahead of the phone in one way that matters:** the app now has the `INTERNET`
+  permission. It is used for that upload only, which is off until the owner sets it up, and a test
+  holds the rest of the code to that. `AGENTS.md` says so.
+- **What it waits for:** a domain; one more site in the Caddy the owner's server already runs; then
+  his word to install on the phone ([08-runbook.md](08-runbook.md)).
+- **Import can now restore a database over 2 GiB**, proven in an emulator. The phone needs that
+  before mid-December.
 
 ## State on 2026-10-09
 
-- **The phone** still runs the build of 2026-10-06. It was looked at that morning after three nights:
-  the same process since the install, connected, every night whole, and the only hole in the recording
-  was the strap off the wrist, which is not a fault ([03-whoop5-status.md](03-whoop5-status.md)).
-- **A new build is ready and is not on the phone.** The strap service comes back when the app is
-  opened and after a phone restart; hours off the wrist are shown; the home screen says how young the
-  recovery baseline is; there is a home-screen widget and an icon of the app's own. It passes the
-  unit tests and builds with the right certificate. The emulator was in use, so none of it has been
-  seen on a screen, and none of it has been tried on the strap. The checks are in
-  [08-runbook.md](08-runbook.md).
+- **The phone** runs the build of 2026-10-09 since 14:27 that day. That morning the build of
+  2026-10-06 was looked at after three nights: the same process since its install, connected, every
+  night whole, and the only hole in the recording was the strap off the wrist, which is not a fault
+  ([03-whoop5-status.md](03-whoop5-status.md)).
+- **What the new build adds:** the strap service comes back when the app is opened and after a phone
+  restart; hours off the wrist are shown; the home screen says how young the recovery baseline is;
+  there is a home-screen widget and an icon of the app's own. It was rehearsed in an emulator, then
+  installed over the app after a checked backup. On the phone it connected, bonded, synced, exported,
+  kept a Disconnect down and came back on Connect, with no hole in the data across the install. The
+  owner then placed the widget and restarted the phone: the link came back by itself and nothing was
+  lost. Still to come: a first night on it ([08-runbook.md](08-runbook.md)).
 - **Why REM reads high is known, and no fix was made**, because one reference night cannot judge one
   ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md)). What is needed is the Garmin's Stages
   view captured each morning ([06-validation-plan.md](06-validation-plan.md)).
 - **Old one-second rows** grow by 28 MB a day worn. The options and a recommendation are in
   [11-old-raw-data.md](11-old-raw-data.md), for the owner to decide.
+- **Backups are to go to the owner's own server.** He decided it that evening, which gives the app one
+  use of the network. The plan is in [12-server-backup.md](12-server-backup.md). Reading the code for
+  it found that the Import button could not restore a database over 2 GiB, which the phone's reaches
+  around mid-December. Both were built the next day: see above.
 - **Who decided what that day:** the owner asked for the work in one run without being consulted, with
   open choices put to a second assistant. Those are marked in [02-decisions.md](02-decisions.md).
 

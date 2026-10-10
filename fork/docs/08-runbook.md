@@ -6,17 +6,14 @@ How to do the recurring things. Commands run from the repository root unless sta
 first:
 
 - **What the phone runs** is LHOOP, `com.lhoop.whoop.staging`, since the evening of 2026-10-06. It
-  holds every recorded night and it is the app connected to the strap. The build on it was made that
-  day at 23:22 and installed at 23:43: commit `2b5126d` plus the redrawn screens and the stage split,
-  which were still uncommitted in the working tree. It is kept as `lhoop-2026-10-06-screens.apk`
-  beside the first LHOOP build, `lhoop-2026-10-06-first.apk` (18:48, commit `7914f17`), which is the
-  one to go back to.
+  holds every recorded night and it is the app connected to the strap. The build on it since
+  2026-10-09 at 16:58 is `lhoop-2026-10-09-icon.apk` (sha256 `d2d291425a4f…`): the third LHOOP build
+  with the owner's own icon, three icon files apart from `lhoop-2026-10-09-ready.apk` (sha256
+  `c30bb30ba8bb…`), which was on the phone from 14:27 to then and is the one to go back to. Before
+  those: `lhoop-2026-10-06-screens.apk` (6 October, 23:43, to 9 October, 14:27) and
+  `lhoop-2026-10-06-first.apk`.
 - **A build of this code installs over the app on the phone**, as long as it is signed with the same
   key. See "Install on the phone".
-- **A third LHOOP build is ready and is NOT on the phone.** Built on 2026-10-09 and kept as
-  `lhoop-2026-10-09-ready.apk` beside the others (same certificate as the app on the phone, checked).
-  It changes when the strap service starts, so it needs the hardware checks: see "The build of
-  9 October" under "Hardware checks". Nothing in it has been seen on a screen or tried on the strap.
 - **The app it replaced is gone.** The owner uninstalled it on the evening of 2026-10-06. LHOOP is the
   only app on the phone that talks to the strap. Never install a build with the old package name
   beside it: two apps must not both hold the strap (see "Moving to the renamed app" below for what
@@ -131,7 +128,42 @@ To roll back, install the previous APK the same way.
 
 ## Hardware checks for a build that changes strap behaviour
 
-### The build of 9 October: built, not installed, nothing tried
+### The build of 9 October: on the phone since 14:27 that day
+
+**Installed on 2026-10-09 at 14:27**, over the build of 6 October, after a backup was exported from
+the running app and checked (whole, and complete up to the minute). What was checked on the phone and
+the strap straight afterwards:
+
+- Checks 1 to 4: it installed, and once opened it was connected, bonded and synced within seconds,
+  with "Background service: running". That line now means in the foreground, and it read so on the
+  phone as it had in the emulator. The battery setting carried over.
+- The screens show what the rehearsal showed, on the phone's own data: the baseline line under the
+  recovery score, the need said once, the off-wrist line on Trends, the grey band and its key on a
+  night's bar, and the "Worn" line and the off-wrist row on the Strap tab. No crash.
+- Check 7 from the Strap tab: after Disconnect the service was gone and the app stayed down through
+  two reopenings; Connect had it connected, bonded and synced six seconds later.
+- Check 9: an export from the new build worked, and it shows no hole across the install or the
+  Disconnect test: every second of the hour around them is there.
+- Two and a half minutes in the background left it connected with its service in the foreground.
+
+**A restart, the same afternoon** (the owner restarted the phone at 14:38, unlocked it and did not
+open the app; read over USB nine minutes later):
+
+- The app's process had been started by Android at 14:40:56, for the widget's redraw, and one second
+  later the strap service was started from a receiver and allowed. The reason Android logged on the
+  phone was `SYSTEM_ALLOW_LISTED`, the battery setting "Unrestricted"; in the emulator, without that
+  setting, it had been `BOOT_COMPLETED`. Either is enough by itself.
+- With the app's screen never opened since the restart, the service was in the foreground and the
+  link was up (the log showed it reading the strap's signal and battery). The lines of the reconnect
+  itself had already rolled out of the phone's log.
+- Opened then: connected, bonded, synced, under the same process the restart had started.
+- An export afterwards has every second of the half hour around the restart.
+- The widget, placed by the owner, shows the home screen's figures.
+
+**Still to do, by the owner:** a Disconnect from the notification (the second half of step 5) and a
+night unopened (step 7).
+
+What follows is the plan as it was written before the install.
 
 This build changes **when** the strap service starts and when the launch sequence runs. It sends
 nothing new to the strap: no new command, no new way of connecting. What is new
@@ -145,26 +177,57 @@ nothing new to the strap: no new command, no new way of connecting. What is new
   while its baseline is short, and the app's own icon.
 
 It was verified by reading, 4,410 unit tests (the two known failures only) and a release build with
-the right certificate and both new components in its manifest. It could not be rehearsed in an
-emulator, which was in use, and it was not installed. So **every screen change will be seen for the
-first time on the phone**, and three things are assumed and not yet shown: that the restart broadcast
-reaches the app on this phone, that this Android version lets it start the service from there, and
-that Android reports a demoted service as not in the foreground.
+the right certificate and both new components in its manifest. When it was built the emulator was
+in use; it was rehearsed there later the same day, on Android 17, the phone's version, in a
+throwaway read-only instance, before it went on the phone.
+
+**What the rehearsal showed** (the demo build on made-up data, then this release build with the
+newest real backup restored into it):
+
+- Every screen opens with the new parts in place: the grey band and its key on the noon-to-noon bar,
+  the line on Trends for a day with an hour or more off the wrist and none for a day with less, the
+  "Worn" line and the off-wrist row on the Strap tab, "Based on your last 5 nights. A full score uses
+  8." under the recovery line, and the sleep card saying the need once when the usual need is set as
+  it is on the phone. The figures on the restored data are the Mac replay's. No crash at any point.
+- The icon draws as designed, in the launcher and in the widget list.
+- The widget was placed from the launcher's list and drew at once, the same figures as the home
+  screen; a tap opens the app. With an older night stored and Android restarted, the system's own
+  redraw greyed every figure and said "Nothing for last night yet".
+- **The incident of 6 October was recreated** (background use restricted while the app was in the
+  background): Android took the service out of the foreground within three seconds and stopped it
+  within about a minute, and the process lived on. Reopening the app, with no tap, put the service
+  back in the foreground under the same process id. The same held when the service had only been
+  demoted. Before this build that needed a forced stop.
+- A Disconnect from the notification stayed down through two reopenings; Connect brought the service
+  back.
+- **After a restart** of the emulator's Android, with a saved strap set by hand and the app not
+  opened, the service was in the foreground within twenty seconds. Android's own log gives the reason
+  it allowed the start as `BOOT_COMPLETED`. Opening the app afterwards kept the one process.
+
+So the three things that were assumed (the restart broadcast arrives, Android lets the service start
+from it, and a demoted service reads as not in the foreground) hold on an emulator of the phone's
+Android version. What the rehearsal could not show: anything with the strap itself, since an
+emulator has none; the phone's own build of Android, which is not the emulator's; and a restart on a
+phone that has a screen lock. The first two were then covered by the install (above); the restart is
+still to be tried.
 
 Before installing: export a backup and pull it (`fork/tools/pull_night.sh`), and keep
 `lhoop-2026-10-06-screens.apk` to go back to. Then, in this order:
 
 1. **Checks 1 to 4 below**, as for any build. On the Strap tab, "Background service" must read
-   "running": that line now means running in the foreground, so "not running" straight after a
-   connect would mean the third assumption above is wrong, not that recording has stopped. Tell the
-   assistant before doing anything else in that case.
+   "running": that line now means running in the foreground. It read so in the emulator; "not
+   running" straight after a connect on the phone would mean the phone differs, not that recording
+   has stopped. Tell the assistant before doing anything else in that case.
 2. **The screens, once each.** Today: the recovery card says "Based on your last N nights. A full
    score uses 8." while N is under 8, and the sleep card says the need once when there is no debt.
    A night that has hours off the wrist between its two noons shows a grey band on "Noon to noon" and
    a key under it (`whoop-data/NOTES.md` says which night has one). Trends: that day's
    summary says "Off the wrist for …, noon to noon." Strap: a "Worn" line, and "Off the wrist" as the
    last row of the table.
-3. **The icon** in the launcher: a blue block and a grey block making an L, with a crescent.
+3. **The icon** in the launcher: a blue block and a grey block making an L, with a crescent. (That
+   icon was replaced the same afternoon by the owner's own, a thin white L on black, in a build kept
+   as `lhoop-2026-10-09-icon.apk`: the same code with three icon files changed. It went on the phone
+   at 16:58 after a checked backup, and reconnected, bonded and synced when opened.)
 4. **The widget.** Long-press the home screen, Widgets, LHOOP, and place it. It should show last
    night's date, recovery, time asleep, "Deep est.", "REM est." and HRV, the same figures as Today.
    Tapping it opens the app. If it says "Can't load widget", remove it and tell the assistant.
@@ -175,8 +238,8 @@ Before installing: export a backup and pull it (`fork/tools/pull_night.sh`), and
 6. **A restart.** Restart the phone, unlock it, and do not open LHOOP. Within two minutes the strap
    notification should appear. Then open the app: connected, bonded, "Synced" a moment ago. With the
    phone on USB the log should show "Auto-reconnecting to your saved WHOOP 5.0 / MG…" once, before the
-   app was opened. If no notification appears, opening the app brings everything back as before, and
-   the first or second assumption above is wrong.
+   app was opened. If no notification appears, opening the app brings everything back as before; the
+   phone then differs from the emulator, where this worked.
 7. **A night**, unopened: check 8.
 8. **Optional, and it costs a gap that the next sync fills: the incident itself.** Settings → Apps →
    LHOOP → App battery usage: flip "Allow background usage" off and on, choose Unrestricted again,
@@ -253,14 +316,52 @@ it is a new install with fresh settings, so the checks were run again after the 
 | 9 | Export works | Export backup proposes `lhoop-backup-<date>.lhoopbak` and says "Backup exported." The file is a zip holding `lhoop-backup.sqlite`. (A build from before the rename used its old name in all three.) |
 | 10 | Battery | Strap and phone drain over a night is about what it was on the original build. |
 
-On the build that is on the phone (6 October), nothing records after a phone restart or a force-stop
-until the app is opened once; that is upstream's behaviour. From the build of 9 October a restart
-brings the link back by itself once the phone has been unlocked. A force-stop still needs the app
-opened: Android delivers nothing to an app it was told to stop. So does an install.
+Until the build of 9 October, nothing recorded after a phone restart or a force-stop until the app
+was opened once; that is upstream's behaviour. From that build, which the phone runs, a restart
+brings the link back by itself once the phone has been unlocked (seen on the phone on 2026-10-09,
+and nothing was lost across it). A force-stop still needs the app opened: Android delivers nothing to an app it was
+told to stop. So does an install.
 
 Installing the cut build over the original silently drops anything the original had set up outside the
 core: placed widgets, wrist notifications, a phone alarm or wind-down reminder, daily auto-backup and
 Health Connect access.
+
+### The build with the server backup: not on the phone
+
+Written on 2026-10-10. It changes nothing in how the app talks to the strap, but it is the first
+build with the `INTERNET` permission, so it gets its own list.
+
+**Rehearsed on 2026-10-10** in emulators on the phone's Android version, with the demo build and a
+server on the Mac ([12-server-backup.md](12-server-backup.md), "What steps 0 and 2 showed"): the
+first backup, a repeat, a restore from the server's export, a run after that restore, a wrong token,
+the server down, and a backup with a database over 2 GiB restored after the app asked. No crash.
+
+**Before it goes on the phone:** the server has to be running on the owner's machine with its name
+and certificate, because the release build is HTTPS only and cannot be tried against the Mac.
+
+**To check on the phone, when the owner asks for the install** (after an export, with the last APK
+kept, as for any build):
+
+1. **Checks 1 to 4 below**, as for any build: connected, bonded, synced, "Background service:
+   running". Nothing about the strap should differ.
+2. **Before a server is set up:** the Strap tab says "Server backup: not set up", and nothing else
+   has changed.
+3. **Set up:** the owner types the address and pastes the token. A wrong address is refused with its
+   reason. On Wi-Fi and charging the first run starts by itself; otherwise Back up now.
+4. **The first run finishes** and the line reads `complete` with the time. On the server,
+   `lhoop-backup status` shows the tables and `verify` passes. With six days of data the first run
+   sends about 30 MB.
+5. **The strap is not disturbed by it:** a sync during or straight after the run still lands, and
+   the next morning's pull has no hole around the time of the run.
+6. **Back up now again** sends almost nothing, in a few seconds.
+7. **The next morning**, without touching the app: the line shows a time from the night or early
+   morning, if the phone charged on Wi-Fi.
+8. **Mobile data:** with Wi-Fi off, the daily run must not happen. Back up now may, since the owner
+   asked.
+9. **Battery:** nothing unusual in Android's battery page for the app after a day.
+
+Then two weeks beside the morning pull, comparing the server's export with the phone's own, before
+the server is trusted as the backup.
 
 ## Phone settings
 
@@ -273,18 +374,19 @@ Health Connect access.
   twice: each time Android took the strap service out of the foreground at once and froze the app
   ten seconds later, and the first time it stopped the service after a minute. Switching back on did
   not undo any of it, and nor did choosing Unrestricted straight afterwards.
-- **After that, the build on the phone (6 October) has to be started again**: stop it and open it
-  (`adb shell am force-stop`, then launch), or tap Connect on the Strap tab. Opening it is not enough
-  on that build: it starts its strap service when its process starts and when Connect is tapped, not
-  when it is brought to the front. "Background service: not running" on the Strap tab is the sign.
+- **After that, the build of 6 October had to be started again**: stop it and open it
+  (`adb shell am force-stop`, then launch), or tap Connect on the Strap tab. Opening it was not enough
+  on that build: it started its strap service when its process started and when Connect was tapped,
+  not when it was brought to the front. "Background service: not running" on the Strap tab is the sign.
   What it missed while down was fetched from the strap on reconnecting both times; nothing was lost.
   With Unrestricted set and the app started again, it stayed connected in the background with its
   service in the foreground (checked for the first few minutes; the long check is number 5 under
   "Hardware checks").
-- **From the build of 9 October, opening the app is enough**: every time it comes to the front it
-  starts the service again if the service is not in the foreground and the link was not disconnected
-  on purpose. Built for exactly this; not yet tried on the phone.
-- Open the app once after every app update, and on the build of 6 October after every phone restart.
+- **From the build of 9 October, which the phone runs, opening the app is enough**: every time it
+  comes to the front it starts the service again if the service is not in the foreground and the link
+  was not disconnected on purpose. Built for exactly this, and it worked when the incident was
+  recreated in the emulator; the incident itself has not been repeated on the phone.
+- Open the app once after every app update.
 
 ## Working on the phone over USB
 

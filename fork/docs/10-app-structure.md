@@ -76,8 +76,9 @@ What connects the strap:
 - **After a force-stop or an install:** nothing runs until the app is opened. This is upstream's
   behaviour, kept as it was.
 
-Two things here are the app's own and not upstream's, both built on 2026-10-09 and neither yet tried
-on the phone ([08-runbook.md](08-runbook.md)):
+Two things here are the app's own and not upstream's, both built on 2026-10-09. Both worked in an
+emulator with a saved strap set by hand. On the phone the restart has been tried and worked; a
+service taken away by Android has not happened there yet ([08-runbook.md](08-runbook.md)):
 
 - **After a phone restart** the link comes back without the app being opened. `BootReceiver` takes
   Android's `BOOT_COMPLETED` and runs `StrapStartup.afterBoot`: the four steps of the driver that need
@@ -155,7 +156,8 @@ owner chose; before that there was one long screen of rows.
 
 ## The widget and the icon
 
-Both are the app's own, made on 2026-10-09, and neither has been seen on a phone yet.
+Both are the app's own, made on 2026-10-09 and on the phone since that afternoon, where the owner
+placed the widget and it shows the home screen's figures.
 
 - **The widget** (`MorningWidget.kt`, four cells by two) shows the newest night: its date, recovery
   with its word, time asleep, "Deep est.", "REM est." and HRV. It is a plain RemoteViews widget with
@@ -169,10 +171,11 @@ Both are the app's own, made on 2026-10-09, and neither has been seen on a phone
   not last night, every figure goes grey and it says "Nothing for last night yet": it always names the
   night by its date and never calls it "last night", since it can be looked at long after the numbers
   were worked out. What it says is decided in `MorningFace`, which is pure and unit-tested.
-- **The icon** is a block letter L with a crescent: the end of a night as the app's own strip draws
-  it, a tall asleep block and a low awake one. It is three vector files
-  (`res/drawable/ic_launcher_*.xml`), and both launcher aliases in the manifest draw it. The original
-  app's icon pictures were deleted.
+- **The icon** is the owner's own design, drawn on 2026-10-09: a thin white L on black, made of two
+  bars that meet corner to corner. It is three vector files (`res/drawable/ic_launcher_*.xml`), traced
+  from his picture so the bars sit where he drew them, and both launcher aliases in the manifest draw
+  it. It replaced, the same day, a first icon the second assistant had chosen (a block L with a
+  crescent). The original app's icon pictures were deleted.
 
 ## Where a night comes from
 
@@ -225,9 +228,10 @@ away when it stops. With the phone attached too, name the device on every `adb` 
 
 `android/app/src/full/AndroidManifest.xml` (and an identical copy for the `demo` flavor) merges over
 the main manifest and only removes: ten
-components whose classes are gone, the `INTERNET` permission, six other permissions nothing uses, the 24
+components whose classes are gone, six permissions nothing uses, the 24
 Health Connect permissions and two package queries. The Bluetooth and foreground-service entries are
-untouched.
+untouched. Until 2026-10-10 it also removed the `INTERNET` permission. It no longer does, because the
+app has one use for the network: see "The server backup" below.
 
 What the app adds of its own is declared once, in the main manifest beside the service: the boot
 receiver (`fork.app.BootReceiver`, not exported) and the widget's receiver
@@ -235,17 +239,40 @@ receiver (`fork.app.BootReceiver`, not exported) and the widget's receiver
 and that no overlay removes them. The widget's texts are in `res/values/morning_widget.xml`, apart
 from `strings.xml`, which is the original app's catalogue and is held to its translations by a test.
 
+## The server backup
+
+Written on 2026-10-10, not on the phone. The app can send its data to a server the owner runs, so
+that a lost phone no longer loses the nights. The design, the server and what was tested are in
+[12-server-backup.md](12-server-backup.md); the server's code is `fork/server/`.
+
+In the app it is `fork/app/backup/`: the hour checksum both sides share, the delta files, the HTTP
+client, a daily job (Android's WorkManager, while charging on Wi-Fi) and a section on the Strap tab
+where the owner gives the server's address and token and can press Back up now. It reads the core's
+database through Room's own connection and has no way to write to it. It is off until set up, and
+HTTPS only.
+
+`BackupServer.kt` is the one file in the app that opens a connection; `NetworkUseTest` fails the
+build if another does. The network policy (`res/xml/network_security_config.xml`) refuses plain HTTP.
+Debug builds have their own copy that allows it to `10.0.2.2` alone, the Mac as an emulator sees it,
+so the upload can be tried against a server there.
+
+The Import button also changed that day: a backup whose database is over 2 GiB used to be refused,
+and now the app asks and restores it on a yes.
+
 ## Status
 
 **The build of 2026-10-09** (the service coming back on opening and after a restart, the hours off
 the wrist, the baseline line, the widget, the icon) is built and unit-tested on the Mac: 4,410 tests,
-with only the two known failures, and a release APK with the right certificate. It is not on the
-phone. The emulator was in use, so nothing in it has been seen on a screen: the widget and the icon
-were checked as far as the Mac allows (the icon rendered from its own files; the widget's wording and
-its layout's tags by tests), and the screen changes not at all. Nothing in it has been tried on the
-strap.
+with only the two known failures, and a release APK with the right certificate. It is on the phone
+since 14:27 that day, where it connected, bonded, synced and exported, and kept a Disconnect down
+([08-runbook.md](08-runbook.md)). Before that it was rehearsed in an emulator, on Android 17 as on the phone: every screen on
+made-up data and on the newest real backup, the icon, the widget placed and redrawn, the service
+brought back by reopening the app after Android took it away, a Disconnect that stayed down, and the
+service starting by itself after a restart ([08-runbook.md](08-runbook.md), "What the rehearsal
+showed"). On the phone the same afternoon the owner placed the widget and restarted the phone: the
+link came back without the app being opened and nothing was lost. Not yet done there: a night.
 
-**The build on the phone** (2026-10-06) was built and unit-tested with 4,359 tests. The three redrawn
+**The build before it** (2026-10-06) was built and unit-tested with 4,359 tests. The three redrawn
 screens were looked at in an emulator on made-up data on 2026-10-06, each from top to bottom, with a
 night open and its folded sections open; then in an emulator on the newest real backup; then on the
 phone, where the build went on at 23:43 that night and each screen was opened once. That covered the

@@ -40,9 +40,13 @@ One file-format tag was shortened rather than renamed, to keep its header the sa
 
 ## Hard limits
 
-- **No network.** The app has no network code and no `INTERNET` permission. Nothing leaves the phone
-  except a backup the owner exports by hand. Adding a server, an account, telemetry, crash reporting or
-  the permission back is out of scope unless the owner decides otherwise.
+- **One use of the network, and no other.** The owner decided on 2026-10-09 that the app may back its
+  data up to a server of his own ([`fork/docs/12-server-backup.md`](fork/docs/12-server-backup.md)).
+  That upload is the only thing allowed to use the network. It is off until he gives the app the
+  server's address and token, it is HTTPS only, and the server it talks to has no route that returns
+  data. `fork/app/backup/BackupServer.kt` is the one file that may open a connection, and
+  `NetworkUseTest` fails the build if another does. An account, telemetry, crash reporting, an update
+  check or any second use of the network is out of scope unless the owner decides otherwise.
 - **Personal data stays out of git.** Treat the repository as public. Raw strap data, database exports,
   backups (`.lhoopbak`, and older ones written under the old name), WHOOP exports, Garmin captures and
   anything derived from them are health data. They live in `whoop-data/`, which `.gitignore` excludes.
@@ -61,8 +65,9 @@ The phone is where real loss can happen: it holds every recorded night, and a ba
 
 - **The phone runs LHOOP** (`com.lhoop.whoop.staging`) since the evening of 2026-10-06. It holds every
   recorded night and it is the app connected to the strap. A build of this code installs over it when
-  it is signed with the same key. The build on it is from that evening; a newer one, made on
-  2026-10-09, waits for the owner and its checks ([`fork/docs/08-runbook.md`](fork/docs/08-runbook.md)).
+  it is signed with the same key. The build on it since 2026-10-09 is that day's; what was checked
+  on the phone and what the owner still has to try is in
+  [`fork/docs/08-runbook.md`](fork/docs/08-runbook.md).
 - **The app it replaced is gone.** The owner uninstalled it that evening, so LHOOP is the only app on
   the phone that talks to the strap. Keep it that way: a build with another package name installs
   beside LHOOP, reconnects by itself and takes records LHOOP then never gets. How the data came
@@ -82,9 +87,10 @@ Kotlin sources are under `android/app/src/main/java/`.
 | Core | `com/lhoop/ble/`, `protocol/`, `data/`, `analytics/`, `LhoopApplication.kt`, `CrashCapture.kt` | The code taken from the original app. See "The core". |
 | Other kept files | 15 small files under `com/lhoop/ui/`, `ingest/`, `testcentre/` (settings objects, units, the raw-sensor export, the test-centre switches) | Also from the original app. |
 | Stand-ins | `fork/standins/` | They declare, in the core's packages, the symbols the core still expects from removed code. |
-| The app | `fork/app/` | The driver that starts the core, the screens, and under `scoring/` how a night is found and scored. New work goes here. |
+| The app | `fork/app/` | The driver that starts the core, the screens, under `scoring/` how a night is found and scored, and under `backup/` the upload to the owner's server. New work goes here. |
 | Manifest overlay | `android/app/src/full/AndroidManifest.xml` | It only removes things from the main manifest. What the app adds (the boot receiver, the widget) is declared in the main manifest. |
 | Project tooling and notes | `fork/` | `fork/tools/` holds the morning routine: `pull_night.sh`, `night_report.py` and `capture_garmin.sh`, and `stage_whatif.py` for trying changes to the stager. |
+| The backup server | `fork/server/` | A Go service, with one dependency (SQLite), that keeps a copy of the app's database on the owner's server. Not part of the app. Its own README says how to run and test it; the design is [`fork/docs/12-server-backup.md`](fork/docs/12-server-backup.md). The app's side and the server's share one rule, the hour checksum, and one file of test cases for it: change both together. |
 
 What each core layer holds: `protocol/` parses frames and decodes records (pure Kotlin); `ble/` is the
 connection, bonding, history offload and the foreground `WhoopConnectionService`; `data/` is the Room
@@ -184,6 +190,10 @@ installing a build from another checkout, compare its certificate with the app's
   `RecoveryDriversTest.issue51NegativeHalfTieUsesDefaultArg8WithoutChangingScoreOrDriverFields`. They
   failed the same way before any change here, on this Mac (JDK 21; upstream's CI runs JDK 17).
 - Four `Tools/test_check_source_references.py` cases on macOS (a temp-folder path quirk).
+
+The backup server has its own tests, which need Go 1.24 or newer: `cd fork/server && go test ./...`
+One of the app's tests, `ServerRoundTripTest`, builds that server and runs the app's backup code
+against it. It is skipped where there is no `go` to build it with.
 
 Other checks: `python3 Tools/doc_comment_lint.py`, `python3 docs/protocol-examples/validate_examples.py`,
 `python3 docs/protocol-examples/check_source_references.py`.

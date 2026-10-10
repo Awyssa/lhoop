@@ -8,6 +8,10 @@
   There are two identical copies, one per flavor: src/full/ (the real app) and src/demo/ (synthetic
   data, for running the UI in an emulator). Change both together; ManifestOverlayCopiesTest checks it.
 
+  Not removed here since 2026-10-10: INTERNET. The app has one use for the network, the backup to the
+  owner's own server (the code under fork/app/backup, fork/docs/12-server-backup.md), and NetworkUseTest checks that
+  no other code opens a connection.
+
   Not touched here, on purpose: the Bluetooth permissions, ACCESS_FINE_LOCATION, FOREGROUND_SERVICE*,
   POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, the
   WhoopConnectionService declaration (including its foregroundServiceType), MainActivity and its launcher
@@ -15,9 +19,6 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
-    <!-- No network code is left in the app: the AI coach, self-hosted push and update check are gone. -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
 
     <!-- Phone-call alerts (com.lhoop.notif.PhoneCallReceiver) are gone. -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" tools:node="remove" />

@@ -1,0 +1,7 @@
+# Only the code goes to the build. Above all not data/, which is the copy of the health data.
+*
+!go.mod
+!go.sum
+!main.go
+!backup
+backup/*_test.go

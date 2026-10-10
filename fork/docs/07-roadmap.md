@@ -1,7 +1,7 @@
 # Roadmap
 
 Status on 2026-10-09, after the sixth night and three days on the redrawn screens. A third LHOOP build
-was made that day and is waiting to go on the phone. Tick items as they land.
+was made that day and went on the phone at 14:27. Tick items as they land.
 
 ## Done
 
@@ -62,10 +62,10 @@ That is a good start, not a result.
 4. **The screens.** A first long screen of rows went on the phone on 2026-10-06. The owner found it
    hard to read, chose three drafts the same evening, and they were built: Today, the night and Trends,
    in one dark look ([10-app-structure.md](10-app-structure.md)). On the phone since 23:43 that night.
-   Built on 2026-10-09 and **not yet on the phone**: a home-screen widget with the morning's numbers,
-   the app's own icon, and the sleep card saying the need once. None of it has been seen on a screen.
-   Next: put that build on the phone with the checks in [08-runbook.md](08-runbook.md), and his
-   reaction to all of it on real nights.
+   Built on 2026-10-09 and on the phone since that afternoon: a home-screen widget with the morning's
+   numbers, the app's own icon, and the sleep card saying the need once.
+   The widget was placed on the phone that afternoon and shows the home screen's figures.
+   Next: a first night on this build, and his reaction to all of it on real nights.
 5. **The app's own scoring.** First version done on 2026-10-03: sleep need with carried debt, a sleep
    score from hours against need, efficiency and consistency, and recovery from HRV and resting heart
    rate against the last 8 nights. On the WHOOP history it is within 7.8 points of WHOOP's recovery.
@@ -93,8 +93,9 @@ That is a good start, not a result.
 8. **Settings the app needs:** background connection, continuous HRV capture, the body profile. Today
    they are frozen at what the original app saved.
 9. **Start by itself after a phone restart, and bring the strap service back whenever the app is
-   opened.** Built on 2026-10-09 (`fork/app/StrapStartup.kt`, `BootReceiver.kt`), not yet on the phone
-   and not yet tried on the strap: the checks are in [08-runbook.md](08-runbook.md). Still open after
+   opened.** Built on 2026-10-09 (`fork/app/StrapStartup.kt`, `BootReceiver.kt`). Both worked in an
+   emulator on the phone's Android version, and the restart worked on the phone that afternoon with
+   nothing lost ([08-runbook.md](08-runbook.md)). Still open after
    that: nothing runs after an app update until the app is opened, by decision
    ([02-decisions.md](02-decisions.md)), and a restart that nobody unlocks records nothing until
    someone does.
@@ -103,12 +104,29 @@ That is a good start, not a result.
     back on, and stores nothing in between ([03-whoop5-status.md](03-whoop5-status.md)).
     `night_report.py` lists those hours as that and keeps them out of its completeness figure. The app
     draws them on the night's 24-hour bar and says them in the pill, on the home screen, on Trends and
-    on the Strap tab (`fork/app/OffWrist.kt`); that part is in the build not yet on the phone.
+    on the Strap tab (`fork/app/OffWrist.kt`), on the phone since that afternoon.
 12. **Say how young the baseline is.** Done on 2026-10-09, in the same build: under the recovery line
     the home screen says how many nights the score is based on until there are eight.
 13. **Lighter backups in the morning routine.** The tools could read a `.lhoopbak` without unpacking
     it, which would save four fifths of what the routine keeps on the Mac
     ([11-old-raw-data.md](11-old-raw-data.md), option B). Not built.
+14. **Back up to the owner's server.** Decided on 2026-10-09; the plan is in
+    [12-server-backup.md](12-server-backup.md). Its order: the Import fix below, the server on the
+    Mac, the app's side in an emulator, the server on Hetzner, the phone, then two weeks beside the
+    morning pull before it is trusted. **The server and the app's side are both built** (2026-10-10,
+    `fork/server/`, in Go, and `fork/app/backup/`). A real backup went up and came back identical on
+    the Mac, also with the server in its container, and in an emulator the demo app backed up to it,
+    restored from it and matched it table for table. Still to do: the server on Hetzner, which waits
+    for a domain and for one more site in the Caddy already there; then the phone. Nothing leaves the phone until the owner
+    installs that build and gives it the server's address.
+15. **Let Import restore a database over 2 GiB.** The core's restore stops at 2 GiB unless told to go
+    on, and the app's Import button never tells it to: it answers "Nothing was restored". The
+    phone's database is 194 MB on 2026-10-09 and grows by about 28 MB a day, so it passes 2 GiB
+    around mid-December. From then no backup of the phone could be restored through the app. Found
+    on 2026-10-09 by reading the code (`fork/app/StatusScreen.kt`, `DataBackup.importFrom`). Written
+    on 2026-10-10: Import now asks "Restore a very large backup?" and a yes runs the core's restore
+    with its ceiling lifted. Proven that day in an emulator on a made-up 2.36 GiB database. It reaches
+    the phone with the next build, which has to be before mid-December.
 
 ## Housekeeping
 
@@ -141,4 +159,4 @@ That is a good start, not a result.
 - [ ] Find out why two `RecoveryDriversTest` cases fail on this Mac.
 - [ ] Seed more shapes of night in the demo flavor as the screen grows (`fork/app/DemoStrapNights.kt`).
 - [x] Give the app its own name and package: LHOOP, `com.lhoop`, on 2026-10-06.
-- [ ] Give it its own icon. The launcher icon is still the original app's picture.
+- [x] Give it its own icon. Done on 2026-10-09: the owner's own design, a thin white L on black.

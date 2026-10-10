@@ -3,10 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      LHOOP is offline by default. It talks to the strap over BLE and stores everything
-      locally (Room). INTERNET supports only explicit opt-ins: the bring-your-own-key
-      AI Coach and Experimental one-way push to a user-owned endpoint. No account,
-      LHOOP server, telemetry, or network dependency is introduced by this permission.
+      LHOOP talks to the strap over BLE and stores everything locally (Room). INTERNET has one use:
+      the backup the owner sets up to a server of his own (fork.app.backup). Until he gives the app
+      that server's address and token, nothing uses the network. No account, no telemetry.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
 

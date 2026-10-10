@@ -34,6 +34,7 @@ import com.lhoop.data.AppVersionEvent
 import com.lhoop.data.WhoopDatabase
 import com.lhoop.data.WhoopSerialIdentity
 import com.lhoop.ui.LhoopPrefs
+import fork.app.backup.ServerBackup
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -130,6 +131,8 @@ class FoundationDriver(app: Application) : AndroidViewModel(app) {
         StrapStartup.reconnectSaved(lhoopApp)
         // The app's own: keep the home-screen widget's numbers fresh as syncs finish.
         MorningWidget.watchSyncs(lhoopApp)
+        // LHOOP's own: the daily backup to the owner's server, when he has set one up. Nothing goes to the strap.
+        runCatching { ServerBackup.schedule(lhoopApp) }
     }
 
     /** 240-262. `"lhoop-app"` is upstream's synthetic, non-strap device id for app-level events. */

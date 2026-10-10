@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android's XML policy cannot express RFC1918/link-local CIDR ranges. Keep platform cleartext
-  enabled so user-configured LAN LLM servers by private IP keep working (#187); the Custom
-  provider's Kotlin guard is the actual public-HTTP boundary.
+  The app's one use of the network is the backup to the owner's server, and that is HTTPS only: the
+  data is health data and the request carries the token. Plain HTTP is refused by the platform here,
+  as well as by the app's own check of the address (fork.app.backup.BackupAddress).
 
-  Built-in cloud AI providers are hardcoded HTTPS endpoints, and arbitrary Custom URLs are rejected
-  before OkHttp attempts a request unless they are loopback, RFC1918, link-local, or .local hosts.
+  Debug builds have their own copy of this file (src/debug), which lets an emulator reach a server
+  under test on the machine it runs on.
 -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
+    <base-config cleartextTrafficPermitted="false" />
 </network-security-config>

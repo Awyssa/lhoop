@@ -1,0 +1,49 @@
+{
+  "about": "The hour checksum rule, as made-up rows and the checksums they must give. The server's tests (Python) and the app's tests (Kotlin) both read this file, so the two cannot drift apart. A blob is written as {\"hex\": \"...\"}. The key of a checksum is the strap, a bar, and the hour (ts / 3600, rounding toward zero).",
+  "cases": [
+    {
+      "name": "whole numbers are summed, and each strap and hour stands alone",
+      "table": "hrSample",
+      "create": "CREATE TABLE `hrSample` (`deviceId` TEXT NOT NULL, `ts` INTEGER NOT NULL, `bpm` INTEGER NOT NULL, `synced` INTEGER NOT NULL, PRIMARY KEY(`deviceId`, `ts`))",
+      "rows": [
+        ["A", 7200, 60, 1],
+        ["A", 7201, 62, 1],
+        ["A", 10800, 70, 0],
+        ["B", 7200, 80, 1]
+      ],
+      "prints": {"A|2": "2,14401,122,2", "A|3": "1,10800,70,0", "B|2": "1,7200,80,1"}
+    },
+    {
+      "name": "a column that may be null adds the count of its values after its sum",
+      "table": "rrInterval",
+      "create": "CREATE TABLE `rrInterval` (`deviceId` TEXT NOT NULL, `ts` INTEGER NOT NULL, `rrMs` INTEGER NOT NULL, `seq` INTEGER NOT NULL, `srcChannel` INTEGER, `tsSuspect` INTEGER, PRIMARY KEY(`deviceId`, `ts`, `rrMs`, `seq`))",
+      "rows": [
+        ["A", 3600, 800, 0, 5, null],
+        ["A", 3600, 810, 1, null, null],
+        ["A", 3601, 500, 0, 7, 1]
+      ],
+      "prints": {"A|1": "3,10801,2110,1,12,2,1,1"}
+    },
+    {
+      "name": "text and blobs give their summed length, and decimals give nothing",
+      "table": "mixed",
+      "create": "CREATE TABLE `mixed` (`deviceId` TEXT NOT NULL, `ts` INTEGER NOT NULL, `kind` TEXT NOT NULL, `payload` BLOB, `x` REAL NOT NULL, `note` TEXT, PRIMARY KEY(`deviceId`, `ts`, `kind`))",
+      "rows": [
+        ["A", 0, "WRIST_OFF(10)", {"hex": "0102"}, 0.25, null],
+        ["A", 5, "éa", null, 9.5, "abc"]
+      ],
+      "prints": {"A|0": "2,5,15,2,1,3,1"}
+    },
+    {
+      "name": "seconds before 1970 round toward zero, so hour 0 is two hours wide",
+      "table": "hrSample",
+      "create": "CREATE TABLE `hrSample` (`deviceId` TEXT NOT NULL, `ts` INTEGER NOT NULL, `bpm` INTEGER NOT NULL, `synced` INTEGER NOT NULL, PRIMARY KEY(`deviceId`, `ts`))",
+      "rows": [
+        ["A", -3600, 50, 0],
+        ["A", -1, 51, 0],
+        ["A", 1, 52, 0]
+      ],
+      "prints": {"A|-1": "1,-3600,50,0", "A|0": "2,0,103,0"}
+    }
+  ]
+}

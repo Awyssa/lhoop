@@ -121,3 +121,9 @@ tools/linux-capture/captures/
 
 # Private health data (strap backups, WHOOP exports, Garmin captures, personal notes). Never commit or upload.
 whoop-data/
+# The backup server's own folders when it is run from the checkout: the copy of the data, and Caddy's
+# certificates. Its host name and token are in fork/server/.env, which the `.env` rule above covers.
+fork/server/data/
+fork/server/caddy/
+# The server's binary, when it is built in place with `go build`.
+fork/server/lhoop-backup

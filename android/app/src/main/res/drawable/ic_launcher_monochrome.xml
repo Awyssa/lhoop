@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Monochrome (themed-icon) layer: the three shapes of ic_launcher_foreground.xml in one colour. -->
+<!-- Monochrome (themed-icon) layer: the two bars of ic_launcher_foreground.xml in one colour. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M38,30 H46 A3,3 0 0 1 49,33 V75 A3,3 0 0 1 46,78 H38 A3,3 0 0 1 35,75 V33 A3,3 0 0 1 38,30 Z"/>
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M54,63.6 H72 A3,3 0 0 1 75,66.6 V75 A3,3 0 0 1 72,78 H54 A3,3 0 0 1 51,75 V66.6 A3,3 0 0 1 54,63.6 Z"/>
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M65,31.5 A9,9 0 1 0 75.5,42 A8,8 0 0 1 65,31.5 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M48.66,38.16 H52.03 V64.41 H48.66 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M52.59,64.41 H65.72 V67.59 H52.59 Z"/>
 </vector>

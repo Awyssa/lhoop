@@ -1,0 +1,22 @@
+# Only for a server with no reverse proxy of its own: adds Caddy, which does the HTTPS.
+#   docker compose -f compose.yaml -f compose.caddy.yaml up -d
+# Where a Caddy already holds ports 80 and 443, do not use this file. Add the site block in
+# Caddyfile to that Caddy's own configuration instead, and join it to the `proxy` network.
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      LHOOP_HOST: ${LHOOP_HOST:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    networks: [proxy]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }

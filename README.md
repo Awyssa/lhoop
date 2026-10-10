@@ -2,7 +2,8 @@
 
 A personal Android app that reads a WHOOP 5.0 strap over Bluetooth and turns its data into **sleep and
 recovery**: time asleep, overnight HRV, resting heart rate and a recovery score. No WHOOP membership,
-no account, no cloud. The app has no network code and no internet permission.
+no account, no cloud. The app uses the network for one thing only, and only once it is set up: a
+backup to a server the owner runs himself.
 
 > **Where the code came from.** LHOOP began as a copy of
 > [NOOP](https://github.com/ryanbr/noop) and keeps that app's Bluetooth, protocol, storage and analytics
@@ -23,8 +24,8 @@ each night to look at closely; trends; and the strap's status. The code builds a
 connecting, bonding, syncing and exporting were confirmed on the strap. Three nights were recorded by
 the build from before the rename; the renamed build took over on 2026-10-06, with those nights restored
 from a backup, and by 2026-10-09 had recorded three more, each complete. A newer build (the strap link
-coming back after a phone restart, hours off the wrist, a home-screen widget, the app's own icon) is
-built and tested on the Mac and not yet on the phone. One night has been compared with a second
+coming back after a phone restart, hours off the wrist, a home-screen widget, the app's own icon)
+went on the phone that afternoon. One night has been compared with a second
 device and agrees closely. That is far too few to call it validated, and the scores are labelled
 experimental. See [`fork/docs/07-roadmap.md`](fork/docs/07-roadmap.md).
 

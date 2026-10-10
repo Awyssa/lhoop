@@ -1,0 +1,12 @@
+# HTTPS for the backup server. Caddy fetches and renews the certificate for the name by itself.
+# No access log is kept: the server writes its own line per request, with no header in it.
+#
+# With compose.caddy.yaml this file is used as it is and the name comes from .env. Where another
+# Caddy already runs, copy the block into its Caddyfile with the real name in place of {$LHOOP_HOST}.
+{$LHOOP_HOST} {
+	request_body {
+		max_size 64MiB
+	}
+	reverse_proxy lhoop-backup:8787
+	header -Server
+}

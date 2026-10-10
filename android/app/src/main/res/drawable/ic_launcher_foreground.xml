@@ -1,20 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- LHOOP's own launcher mark, drawn for this app on 2026-10-09: the end of a night as the app's own
-     strip draws it, a full-height asleep block and then a low awake one, which is also a letter L, with
-     a crescent over the foot. Colours are the app's palette (fork/app/Theme.kt). Every point is within
-     32dp of the centre of the 108dp viewport; the adaptive icon's safe radius is 33. -->
+<!-- LHOOP's launcher mark, the owner's own design (2026-10-09): a thin white L made of two bars that
+     meet corner to corner, the foot starting just right of and just below the stem. Traced from his
+     picture, with its circle taken as the 72dp circle a launcher shows of the 108dp viewport, so the
+     bars sit where he drew them. Every point is within 18dp of the centre; the safe radius is 33. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <!-- The stem: asleep. -->
+    <!-- The stem. -->
     <path
-        android:pathData="M38,30 H46 A3,3 0 0 1 49,33 V75 A3,3 0 0 1 46,78 H38 A3,3 0 0 1 35,75 V33 A3,3 0 0 1 38,30 Z"
-        android:fillColor="#8FAAFF"/>
-    <!-- The foot: awake, three tenths of the stem's height as on the strip. -->
+        android:pathData="M48.66,38.16 H52.03 V64.41 H48.66 Z"
+        android:fillColor="#FFFFFF"/>
+    <!-- The foot. -->
     <path
-        android:pathData="M54,63.6 H72 A3,3 0 0 1 75,66.6 V75 A3,3 0 0 1 72,78 H54 A3,3 0 0 1 51,75 V66.6 A3,3 0 0 1 54,63.6 Z"
-        android:fillColor="#C9CFDA"/>
-    <!-- The crescent. -->
-    <path
-        android:pathData="M65,31.5 A9,9 0 1 0 75.5,42 A8,8 0 0 1 65,31.5 Z"
-        android:fillColor="#C9CFDA"/>
+        android:pathData="M52.59,64.41 H65.72 V67.59 H52.59 Z"
+        android:fillColor="#FFFFFF"/>
 </vector>

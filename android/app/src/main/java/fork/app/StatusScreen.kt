@@ -7,6 +7,7 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +49,7 @@ import com.lhoop.data.DataBackup
 import com.lhoop.data.WhoopDatabase
 import com.lhoop.protocol.DeviceFamily
 import com.lhoop.ui.LhoopPrefs
+import fork.app.backup.ServerBackupSection
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -80,6 +82,7 @@ fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
     var importMessage by remember { mutableStateOf<String?>(null) }
     var confirmImport by remember { mutableStateOf(false) }
     var importing by remember { mutableStateOf(false) }
+    var oversize by remember { mutableStateOf<Pair<Uri, Long>?>(null) }
     var debugLogging by remember { mutableStateOf(LhoopPrefs.debugLogging(context)) }
 
     // Row counts and the registry model: on entering the foreground, when a sync starts or ends, when the
@@ -145,40 +148,61 @@ fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
     // the file, swaps the database and then needs the process restarted, because every open handle points
     // at the old one. The sleeps the app worked out are cleared with it: they are rebuilt from the
     // restored rows. A backup written by this app under an earlier name restores too.
+    //
+    // The core stops at a database over its ceiling (2 GiB) unless told to go on, and hands back TooLarge
+    // with nothing changed (upstream #1807). A strap worn round the clock passes that in about ten weeks,
+    // so the owner is asked, and a yes runs the same restore with `allowOversize`.
+    fun restore(uri: Uri, allowOversize: Boolean) {
+        scope.launch {
+            importing = true
+            importMessage = "Restoring the backup…"
+            val result = withContext(Dispatchers.IO) {
+                runCatching { DataBackup.importFrom(context, uri, allowOversize = allowOversize) }
+            }
+            val restored = result.getOrNull() is DataBackup.ImportResult.NeedsRestart
+            importMessage = result.fold(
+                onSuccess = { outcome ->
+                    when (outcome) {
+                        is DataBackup.ImportResult.NeedsRestart ->
+                            "Backup restored. The app is closing so it can start on the restored data. Open it again."
+                        is DataBackup.ImportResult.Failed -> "Nothing was restored: ${outcome.message}"
+                        is DataBackup.ImportResult.TooLarge -> {
+                            oversize = uri to outcome.limitBytes
+                            null
+                        }
+                    }
+                },
+                onFailure = { e -> "Nothing was restored: ${e.message}" },
+            )
+            if (restored) {
+                withContext(Dispatchers.IO) {
+                    runCatching { SleepStore.fileIn(context.filesDir).delete() }
+                    // The widget's numbers came from the data just replaced.
+                    runCatching { MorningWidget.clear(context) }
+                }
+                delay(RESTART_NOTICE_MS)
+                closeForRestart(context)
+            }
+            importing = false
+        }
+    }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
-        if (uri != null) {
-            scope.launch {
-                importing = true
-                importMessage = "Restoring the backup…"
-                val result = withContext(Dispatchers.IO) {
-                    runCatching { DataBackup.importFrom(context, uri) }
-                }
-                val restored = result.getOrNull() is DataBackup.ImportResult.NeedsRestart
-                importMessage = result.fold(
-                    onSuccess = { outcome ->
-                        when (outcome) {
-                            is DataBackup.ImportResult.NeedsRestart ->
-                                "Backup restored. The app is closing so it can start on the restored data. Open it again."
-                            is DataBackup.ImportResult.Failed -> "Nothing was restored: ${outcome.message}"
-                            is DataBackup.ImportResult.TooLarge -> "Nothing was restored: ${outcome.message}"
-                        }
-                    },
-                    onFailure = { e -> "Nothing was restored: ${e.message}" },
-                )
-                if (restored) {
-                    withContext(Dispatchers.IO) {
-                        runCatching { SleepStore.fileIn(context.filesDir).delete() }
-                        // The widget's numbers came from the data just replaced.
-                        runCatching { MorningWidget.clear(context) }
-                    }
-                    delay(RESTART_NOTICE_MS)
-                    closeForRestart(context)
-                }
-                importing = false
-            }
-        }
+        if (uri != null) restore(uri, allowOversize = false)
+    }
+    oversize?.let { (uri, limitBytes) ->
+        AlertDialog(
+            onDismissRequest = { oversize = null; importMessage = NOTHING_RESTORED },
+            title = { Text("Restore a very large backup?") },
+            text = { Text(oversizeBackupQuestion(limitBytes)) },
+            confirmButton = {
+                TextButton(onClick = { oversize = null; restore(uri, allowOversize = true) }) { Text("Restore anyway") }
+            },
+            dismissButton = {
+                TextButton(onClick = { oversize = null; importMessage = NOTHING_RESTORED }) { Text("Cancel") }
+            },
+        )
     }
     if (confirmImport) {
         AlertDialog(
@@ -272,6 +296,8 @@ fun StatusScreen(driver: FoundationDriver, modifier: Modifier = Modifier) {
         if (live.connected) Text("Disconnect before importing a backup.", style = MaterialTheme.typography.bodySmall)
         importMessage?.let { Text(it) }
 
+        ServerBackupSection()
+
         // Test Centre → "Debug logging", upstream ui/TestCentreScreen.kt 886-890.
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Debug logging", modifier = Modifier.weight(1f))
@@ -302,6 +328,13 @@ private fun CountRow(label: String, day: String, week: String) {
 
 /** How long the "restored, closing" line stays up before the app closes. */
 private const val RESTART_NOTICE_MS = 2_500L
+
+private const val NOTHING_RESTORED = "Nothing was restored."
+
+/** What the owner is asked when a backup's database is over the core's ceiling. Nothing has been changed when it shows. */
+internal fun oversizeBackupQuestion(limitBytes: Long): String =
+    "The database in this backup is over ${limitBytes shr 30} GB. Restoring it needs about twice its size free " +
+        "on this phone while it works, and takes a few minutes. Nothing has been changed yet."
 
 /**
  * Ends the process after a restore. The database file was replaced under the running app, so nothing in
