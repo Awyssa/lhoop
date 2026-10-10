@@ -5,8 +5,10 @@
     fork/tools/stage_whatif.py <backup> --garmin whoop-data/garmin
 
 The app's stage split is the core's stager (android/.../analytics/SleepStagerV2.kt) run over each sleep
-the strap flagged (fork/app/scoring/SleepStagesCalc.kt). Its REM reads high. This is a research tool for
-finding out why and for trying a change before it goes anywhere near the app. It prints, per sleep:
+the strap flagged (fork/app/scoring/SleepStagesCalc.kt), with one constant of the app's own: the rise in
+REM with time of night is half the engine's (SleepStagesCalc.REM_RISE), since 2026-10-10. At full
+strength its REM read high. This is a research tool for trying a change before it goes anywhere near
+the app. It prints, per sleep:
 
   1. the split as shipped, which must equal what the app shows. `StrapSleepBackupCheckTest` prints the
      app's own figures for the same backup: if the two differ, this port has drifted from the Kotlin and
@@ -51,12 +53,13 @@ REM_LATENCY_PENALTY, REM_LATENCY_MINUTES = 3.0, 60.0
 ONSET_SUSTAINED_EPOCHS = 10
 PAD_LO, PAD_HI = 360, 420                             # how far outside the sleep the features read
 
-# What the recipe ships with. Each variant below overrides one or two of these.
-SHIPPED = {"ramp": 1.0, "rem_prior": BASE_PRIOR["rem"], "resp": True, "hr": 0.4, "hr_var": 0.6, "move": 0.6}
+# What the app ships with. Each variant below overrides one or two of these. "ramp" is the app's own
+# SleepStagesCalc.REM_RISE, half the engine's 1.0; every other constant is the engine's.
+SHIPPED = {"ramp": 0.5, "rem_prior": BASE_PRIOR["rem"], "resp": True, "hr": 0.4, "hr_var": 0.6, "move": 0.6}
 VARIANTS = [
     ("as shipped", {}),
+    ("the engine's own rise (1.0)", {"ramp": 1.0}),
     ("no rise with time of night", {"ramp": 0.0}),
-    ("half the rise", {"ramp": 0.5}),
     ("no breathing-regularity term", {"resp": False}),
     ("no heart-rate-variability term", {"hr_var": 0.0}),
     ("no heart-rate-level term", {"hr": 0.0}),

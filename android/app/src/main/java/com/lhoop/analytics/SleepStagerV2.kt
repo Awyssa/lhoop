@@ -71,6 +71,9 @@ object SleepStagerV2 {
     fun stageSession(
         start: Long, end: Long, grav: List<GravitySample>,
         hr: List<HrSample>, rr: List<RrInterval>, resp: List<RespSample>,
+        // LHOOP's one addition to this file: how strongly REM is favoured as the night goes on. The
+        // engine's own callers leave it at [REM_RISE], so nothing of theirs changes.
+        remRise: Double = REM_RISE,
     ): List<StageSegment> {
         // PERF CLIP (v7.0.2 / #707): bound the grav/hr/rr streams to the only seconds any Epoch feature can
         // possibly READ before doing ANYTHING else — both the fingerprint and the compute then operate on the
@@ -92,9 +95,13 @@ object SleepStagerV2 {
         val hrC = clipSorted(hr.sortedBy { it.ts }, start - PAD_LO, end + PAD_HI) { it.ts }
         val rrC = clipSorted(rr.sortedBy { it.ts }, start - PAD_LO, end + PAD_HI) { it.ts }
 
+        // The cache's key knows nothing of [remRise], so only the engine's own slope is cached. A caller
+        // with another slope is staged afresh each time (LHOOP stages a sleep once and stores the result).
+        if (remRise != REM_RISE) return stageSessionUncached(start, end, gravC, hrC, rrC, resp, remRise)
+
         val key = StagerCache.fingerprint(StagerCache.Version.V2, start, end, gravC, hrC, rrC)
         StagerCache.get(key)?.let { return StagerCache.copyOf(it) }
-        val segments = stageSessionUncached(start, end, gravC, hrC, rrC, resp)
+        val segments = stageSessionUncached(start, end, gravC, hrC, rrC, resp, remRise)
         StagerCache.put(key, segments)
         return StagerCache.copyOf(segments)
     }
@@ -130,6 +137,7 @@ object SleepStagerV2 {
     private fun stageSessionUncached(
         start: Long, end: Long, grav: List<GravitySample>,
         hr: List<HrSample>, rr: List<RrInterval>, resp: List<RespSample>,
+        remRise: Double,
     ): List<StageSegment> {
         // Sort defensively so the windowed features behave regardless of caller ordering.
         val gravS = grav.sortedBy { it.ts }
@@ -138,7 +146,7 @@ object SleepStagerV2 {
 
         val feats = features(start, end, gravS, hrS, rrS)
         if (feats.isEmpty()) return listOf(StageSegment(start = start, end = end, stage = "light"))
-        val labels = stageEpochs(feats)
+        val labels = stageEpochs(feats, remRise)
 
         // Tile [start, end] with one segment per staged epoch. The first segment back-fills [start, firstEpoch)
         // and the last extends to `end`. "awake" is renamed to the canonical "wake" used by V1 / StageSegment.
@@ -521,10 +529,13 @@ object SleepStagerV2 {
      *  replaced therefore scaled a fixed physiological interval by session length: across one WHOOP 5 user's
      *  own recorded nights it ranged 7.4–84.5 min, an 11× spread, for the same wearer and the same physiology.
      *  Internal so the parity test can call it, matching the Swift `cyclePrior` visibility. */
-    internal fun cyclePrior(c: Double, minutesSinceOnset: Double): Map<String, Double> = mapOf(
+    internal fun cyclePrior(c: Double, minutesSinceOnset: Double, remRise: Double = REM_RISE): Map<String, Double> = mapOf(
         "deep" to 1.2 * maxOf(0.0, 1.0 - c / 0.55),
-        "rem" to 1.0 * c - remLatencyGuard(minutesSinceOnset),
+        "rem" to remRise * c - remLatencyGuard(minutesSinceOnset),
         "light" to 0.0, "awake" to 0.0)
+
+    /** The engine's own slope for REM's rise toward morning: the `1.0` of the provenance note above. */
+    const val REM_RISE = 1.0
 
     /** Sustained non-wake run, in 30 s epochs, that establishes sleep onset — 10 epochs = 5 minutes.
      *  Measured against PSG onset on sleep-accel (n = 31 subjects): bias −3.8 min, MAE 7.4 min. */
@@ -589,7 +600,7 @@ object SleepStagerV2 {
      *  extra cost is one Viterbi over an already-built lattice, not a second featurisation, and
      *  [stageSession] memoizes the whole thing anyway. When no sustained run exists the origin falls back to
      *  the window start, which is exactly the origin the shipped `c`-based guard used. */
-    private fun stageEpochs(feats: List<Epoch>): List<String> {
+    private fun stageEpochs(feats: List<Epoch>, remRise: Double = REM_RISE): List<String> {
         if (feats.isEmpty()) return emptyList()
 
         // Per-night z-score over the present values (population std; 0 std → 1 so a flat channel is neutral).
@@ -634,7 +645,7 @@ object SleepStagerV2 {
             em["light"] = baseLogPrior["light"]!!
             em["awake"] = 1.0 * zmvv + awakeCardiac + baseLogPrior["awake"]!!
             // Guard DISABLED here (infinity ⇒ [remLatencyGuard] = 0); pass 2 below adds it once onset is known.
-            val pr = cyclePrior(f.clock, Double.POSITIVE_INFINITY)
+            val pr = cyclePrior(f.clock, Double.POSITIVE_INFINITY, remRise)
             for (s in stageNames) em[s] = em[s]!! + pr[s]!!
             if (f.jerkMax > f.jerkScale * jerkFloorGateMult) em["awake"] = em["awake"]!! + motionGateBoost
             f.respReg?.let { rg -> val z = zrg(rg); em["deep"] = em["deep"]!! + respWeight * z; em["rem"] = em["rem"]!! - respWeight * z }

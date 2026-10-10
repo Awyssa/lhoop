@@ -1,5 +1,6 @@
 package fork.app.scoring
 
+import com.lhoop.analytics.SleepStagerV2
 import com.lhoop.analytics.StageSegment
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -68,6 +69,24 @@ class SleepStagesCalcTest {
     fun aHypnogramOfOneSegmentIsTheStagerHavingTooLittleAndGivesNothing() {
         assertNull(SleepStagesCalc.fromSegments(sleep(Stretch(1_000, 4_599, 3_600, 0)), listOf(StageSegment(1_000, 4_600, "light"))))
         assertNull(SleepStagesCalc.fromSegments(sleep(Stretch(1_000, 4_599, 3_600, 0)), emptyList()))
+    }
+
+    @Test
+    fun theAppHalvesTheEnginesRiseInRemAndChangesNothingElse() {
+        assertEquals(1.0, SleepStagerV2.REM_RISE, 0.0)
+        assertEquals(0.5, SleepStagesCalc.REM_RISE, 0.0)
+        // Late in a sleep, with the latency guard spent: the engine's own leaning toward each stage, and the app's.
+        val engine = SleepStagerV2.cyclePrior(0.8, Double.POSITIVE_INFINITY)
+        val app = SleepStagerV2.cyclePrior(0.8, Double.POSITIVE_INFINITY, SleepStagesCalc.REM_RISE)
+        assertEquals(0.8, engine.getValue("rem"), 1e-12)
+        assertEquals(0.4, app.getValue("rem"), 1e-12)
+        for (stage in listOf("deep", "light", "awake")) assertEquals(stage, engine.getValue(stage), app.getValue(stage), 0.0)
+        // Early on, the guard against REM straight after falling asleep is the engine's own, untouched.
+        assertEquals(
+            SleepStagerV2.cyclePrior(0.0, 0.0).getValue("rem"),
+            SleepStagerV2.cyclePrior(0.0, 0.0, SleepStagesCalc.REM_RISE).getValue("rem"),
+            0.0,
+        )
     }
 
     @Test

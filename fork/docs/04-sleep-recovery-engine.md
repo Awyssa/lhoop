@@ -305,13 +305,49 @@ What that does on this strap and this wearer:
   breathing term, which feeds deep as well, does. That it agrees with the wearer's WHOOP history is
   partly the recipe's doing. It cannot show a night with little deep sleep.
 
-**No fix has been made, on purpose.** There is one night with a comparable reference (the Garmin's
-stage totals for 6 October; on 5 October the two devices disagree about the sleep itself). Cutting
-the rise from 1.0 to 0.7, lowering REM's base rate from 0.22 to 0.18, and dropping the breathing term
-each land within about twenty minutes of that night's REM, by three different routes. One night
-cannot choose between them, and a change picked that way would be fitted to a single point
-([06-validation-plan.md](06-validation-plan.md), "What a stage fix needs"). The screen still shows
-the shipped split and still says "estimate, REM reads high".
+**On 2026-10-09 no fix was made, on purpose.** There was one night with a comparable reference (the
+Garmin's stage totals for 6 October; on 5 October the two devices disagree about the sleep itself).
+Cutting the rise from 1.0 to 0.7, lowering REM's base rate from 0.22 to 0.18, and dropping the
+breathing term each landed within about twenty minutes of that night's REM, by three different
+routes. One night could not choose between them
+([06-validation-plan.md](06-validation-plan.md), "What a stage fix needs").
+
+### The fix of 2026-10-10: the rise is halved
+
+A second comparable night, 10 October, showed the same excess, and the owner asked whether to go on
+waiting. The answer changed for two reasons.
+
+- **There was a better target than one or two Garmin nights: the wearer's own 240 nights of WHOOP
+  history.** It says what share of his sleep is REM over the long run. It cannot say anything about a
+  single night, but the app's fault was in the average, and an average is what it can set.
+- **The candidate changes differed from each other far less than any of them differed from the
+  screen.** Waiting weeks to choose between them kept an error of over an hour on screen to settle
+  the last ten or fifteen minutes.
+
+So the rise, the one term that adds REM whatever the signals say, is halved: `SleepStagesCalc.REM_RISE`
+is 0.5 where the engine's own is 1.0. Nothing else in the stager is touched, and the engine's own
+callers still get its own slope. Over the eight sleeps recorded by then:
+
+| | Before | After |
+|---|---|---|
+| The app's REM as a share of time asleep, mean of eight sleeps | well over a third | a little under a quarter, level with the WHOOP history's long-run share |
+| Against the Garmin on the two comparable nights | about one and a half times its REM | a little under it on both, by 12 and 26 minutes |
+| Deep | a quarter to three tenths of every sleep | the same: it does not depend on the rise |
+| Light, which is what is left | about two hours under the Garmin's | within a few minutes on one night, half an hour under on the other |
+
+What this does and does not show:
+
+- **It sets the level.** The app's REM no longer reads high on average.
+- **It does not show the app follows the nights.** With the rise halved, the app's REM share runs
+  from under a fifth to three tenths across the eight sleeps, so the evidence terms do move it. Whether
+  they move it the right way is unknown: that needs nights with a reference, and each Garmin capture
+  from 11 October on is a night the change was not set on.
+- **Deep is untouched and still pinned.** Its average agrees with the WHOOP history and sits above the
+  Garmin's, so the two references disagree about it; its fault is that it cannot show a poor night,
+  and mending that means another rule, not another constant.
+- **The stored sleeps are worked out again** (`SleepStore.RULES` is 4), so earlier nights change on
+  screen too once the build is on the phone. The screen says "estimate" and no longer "REM reads
+  high". `fork/tools/stage_whatif.py` ships the same constant and gives the app's split exactly.
 
 ## Tests
 

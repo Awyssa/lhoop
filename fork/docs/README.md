@@ -24,19 +24,29 @@ Rules for the code itself are in [`AGENTS.md`](../../AGENTS.md). These notes are
 
 ## State on 2026-10-10
 
-- **The phone is unchanged:** it runs the build of 2026-10-09 and has no network code.
+- **The phone runs the build of 2026-10-10 since 22:33 that evening**, installed when the owner asked,
+  after a checked backup and a rehearsal. It connected, bonded and synced by itself, and nothing was
+  lost ([08-runbook.md](08-runbook.md)). It carries the server backup, which is off until he sets it
+  up; Import's question for a database over 2 GiB; and the halved rise in REM.
 - **A backup to the owner's own server is built and not deployed.** The server is `fork/server/`, in
   Go at the owner's wish; the app's side is `fork/app/backup/`; the design and every test result are
   in [12-server-backup.md](12-server-backup.md). On the Mac a real backup went up and came back
   identical, also with the server in its container. In an emulator the demo app backed up to the
   server, restored from it, and matched it table for table.
-- **The working tree is ahead of the phone in one way that matters:** the app now has the `INTERNET`
-  permission. It is used for that upload only, which is off until the owner sets it up, and a test
-  holds the rest of the code to that. `AGENTS.md` says so.
-- **What it waits for:** a domain; one more site in the Caddy the owner's server already runs; then
-  his word to install on the phone ([08-runbook.md](08-runbook.md)).
-- **Import can now restore a database over 2 GiB**, proven in an emulator. The phone needs that
-  before mid-December.
+- **The app now has the `INTERNET` permission**, on the phone too. It is used for that upload only,
+  which is off until the owner sets it up, and a test holds the rest of the code to that. `AGENTS.md`
+  says so.
+- **What the backup waits for:** a domain, the service started on the owner's server, and one more
+  site in the Caddy that server already runs. Then he gives the app the address and the token.
+- **Import can now restore a database over 2 GiB**, proven in an emulator and on the phone since
+  that evening, well before the phone's database gets there in mid-December.
+- **The first night on the build of 9 October** was recorded whole and compared with the Garmin: the
+  two agree on the sleep and the heart figures, and differed on the stage split as before
+  ([06-validation-plan.md](06-validation-plan.md)). Two comparable Garmin nights of about fourteen.
+- **The REM level was fixed that evening**, at the owner's word: the stager's rise in REM is halved,
+  which puts the app's average with his WHOOP history and close to the Garmin
+  ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md), "The fix of 2026-10-10"). On the
+  phone since 22:33.
 
 ## State on 2026-10-09
 

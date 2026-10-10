@@ -77,7 +77,16 @@ reference beside the scores in the replay.
 The stager's REM reads high and the reason is known
 ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md), "Why the REM reads high"). What is
 missing is the means to tell a good fix from a lucky one. On 2026-10-09 there was one comparable
-reference night.
+reference night. On 2026-10-10 there were two. The second repeats the first: where the two devices
+measure, they agree (the end of the sleep to the minute, time asleep within ten minutes, resting
+heart rate the same, HRV within a millisecond), and the app's REM is again about one and a half times
+the Garmin's, its deep about a third more and its light far less. Two nights still cannot choose
+between the candidate changes, which land within a few points of each other on both.
+
+**The level was fixed that day all the same**, against a better target: the wearer's long-run REM
+share over 240 nights of WHOOP history ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md),
+"The fix of 2026-10-10"). What follows is still what it takes to show the app follows a night, and to
+judge any further change. Every Garmin capture from 11 October on is a night the fix was not set on.
 
 - **More nights with the Garmin's Stages view captured:** about fourteen, short and long ones among
   them, and not all from the same week. Each morning, with last night's sleep page open in Garmin

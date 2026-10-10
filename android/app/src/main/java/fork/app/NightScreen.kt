@@ -189,8 +189,8 @@ private fun NightChart(night: Night, detail: NightDetail?, offWristInBedSec: Lon
         Stages(night)
         Spacer(Modifier.height(8.dp))
         Caption(
-            "The stage split is the original engine's stager run over this night. Its deep sleep has been close to a " +
-                "second device's; its REM has read about an hour and a half more. " +
+            "The stage split is an estimate, from the original engine's stager run over this night. Deep comes " +
+                "out near the same share of every night, so read it loosely. " +
                 "Restless is time the strap saw you move without calling you awake; it counts as sleep.",
         )
         NightNotes(night, offWristInBedSec)

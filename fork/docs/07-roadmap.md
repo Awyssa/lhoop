@@ -1,7 +1,7 @@
 # Roadmap
 
-Status on 2026-10-09, after the sixth night and three days on the redrawn screens. A third LHOOP build
-was made that day and went on the phone at 14:27. Tick items as they land.
+Status on 2026-10-10, after the seventh night. The build on the phone is that evening's, installed at
+22:33. Tick items as they land.
 
 ## Done
 
@@ -65,7 +65,9 @@ That is a good start, not a result.
    Built on 2026-10-09 and on the phone since that afternoon: a home-screen widget with the morning's
    numbers, the app's own icon, and the sleep card saying the need once.
    The widget was placed on the phone that afternoon and shows the home screen's figures.
-   Next: a first night on this build, and his reaction to all of it on real nights.
+   The first night on this build, 9 to 10 October, was recorded whole and agreed with the Garmin on
+   everything but the stage split ([06-validation-plan.md](06-validation-plan.md)).
+   Next: his reaction to all of it on real nights.
 5. **The app's own scoring.** First version done on 2026-10-03: sleep need with carried debt, a sleep
    score from hours against need, efficiency and consistency, and recovery from HRV and resting heart
    rate against the last 8 nights. On the WHOOP history it is within 7.8 points of WHOOP's recovery.
@@ -78,15 +80,17 @@ That is a good start, not a result.
 7. **Better inputs:** HRV window selection, and whether the resting heart rate should be the mean over
    the sleep instead of the lowest five minutes.
    **Make REM believable.** The owner wants deep and REM each morning. The split shown is the core's
-   stager over the strap's night, and its REM reads about double. Why is known since 2026-10-09: most
-   of the REM comes from a term that rises with time of night, not from evidence, and deep is pinned
-   near the same share of every sleep ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md),
-   "Why the REM reads high"). No fix was made: one comparable reference night cannot tell a good
-   change from a lucky one. Next: capture the Garmin's Stages view each morning until there are about
-   fourteen nights, then choose a change on half and judge it on the rest
-   ([06-validation-plan.md](06-validation-plan.md), "What a stage fix needs"). The tools are there:
-   `fork/tools/stage_whatif.py` tries a change, and the replay test prints the app's split beside the
-   Garmin's.
+   stager over the strap's night, and its REM read about one and a half times a second device's. Why
+   is known since 2026-10-09: most of the REM came from a term that rises with time of night, not from
+   evidence, and deep is pinned near the same share of every sleep
+   ([04-sleep-recovery-engine.md](04-sleep-recovery-engine.md), "Why the REM reads high").
+   **The level was fixed on 2026-10-10** at the owner's word: that rise is halved, which puts the
+   app's average REM share level with his 240 nights of WHOOP history and close to the Garmin on the
+   two nights compared. On the phone since that evening. Still to show: that the app follows the nights, which
+   takes the Garmin's Stages view captured each morning until there are about fourteen
+   ([06-validation-plan.md](06-validation-plan.md), "What a stage fix needs"); and deep, which cannot
+   show a poor night. The tools are there: `fork/tools/stage_whatif.py` tries a change, and the replay
+   test prints the app's split beside the Garmin's.
    **Progress over longer spans.** Trends compares the last week with the four before it by plain
    means. It says nothing until there are four nights in the week and seven before it; months of
    nights would allow more.
@@ -117,16 +121,17 @@ That is a good start, not a result.
     `fork/server/`, in Go, and `fork/app/backup/`). A real backup went up and came back identical on
     the Mac, also with the server in its container, and in an emulator the demo app backed up to it,
     restored from it and matched it table for table. Still to do: the server on Hetzner, which waits
-    for a domain and for one more site in the Caddy already there; then the phone. Nothing leaves the phone until the owner
-    installs that build and gives it the server's address.
+    for a domain and for one more site in the Caddy already there. The app's side is on the phone
+    since that evening, and nothing leaves the phone until the owner gives it the server's address and
+    token.
 15. **Let Import restore a database over 2 GiB.** The core's restore stops at 2 GiB unless told to go
     on, and the app's Import button never tells it to: it answers "Nothing was restored". The
     phone's database is 194 MB on 2026-10-09 and grows by about 28 MB a day, so it passes 2 GiB
     around mid-December. From then no backup of the phone could be restored through the app. Found
     on 2026-10-09 by reading the code (`fork/app/StatusScreen.kt`, `DataBackup.importFrom`). Written
     on 2026-10-10: Import now asks "Restore a very large backup?" and a yes runs the core's restore
-    with its ceiling lifted. Proven that day in an emulator on a made-up 2.36 GiB database. It reaches
-    the phone with the next build, which has to be before mid-December.
+    with its ceiling lifted. Proven that day in an emulator on a made-up 2.36 GiB database, and on
+    the phone since that evening.
 
 ## Housekeeping
 

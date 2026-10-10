@@ -65,7 +65,7 @@ The phone is where real loss can happen: it holds every recorded night, and a ba
 
 - **The phone runs LHOOP** (`com.lhoop.whoop.staging`) since the evening of 2026-10-06. It holds every
   recorded night and it is the app connected to the strap. A build of this code installs over it when
-  it is signed with the same key. The build on it since 2026-10-09 is that day's; what was checked
+  it is signed with the same key. The build on it since 2026-10-10 is that evening's; what was checked
   on the phone and what the owner still has to try is in
   [`fork/docs/08-runbook.md`](fork/docs/08-runbook.md).
 - **The app it replaced is gone.** The owner uninstalled it that evening, so LHOOP is the only app on
@@ -126,8 +126,13 @@ been wrong on real nights, and that stored copy is cut short on a strap worn rou
 rules for finding a sleep, its heart figures or its stages change, raise `SleepStore.RULES`.
 
 **Deep and REM are estimates, and the screen says so.** They are the core's stager run over the
-strap's night (`fork/app/scoring/SleepStagesCalc.kt`). Its deep sleep has been believable; its REM has
-read about twice what it should. Do not present either as measured, and do not feed them into a score.
+strap's night (`fork/app/scoring/SleepStagesCalc.kt`), with one constant of the app's own: the
+stager's rise in REM toward morning is halved (`SleepStagesCalc.REM_RISE`), because at full strength
+its REM read about one and a half times what the references gave. That set the average, not the
+night-to-night accuracy, which is unproven; and deep comes out near the same share of every sleep by
+the stager's construction. Do not present either as measured, and do not feed them into a score.
+`fork/tools/stage_whatif.py` is a port of the stager that must give the app's split: change both
+together.
 
 ## Stand-ins
 

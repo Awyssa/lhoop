@@ -110,9 +110,10 @@ internal class SleepStore(private val file: File) {
          * from the strap's rows.
          *
          * 1: only state 2 counted as asleep. 2: "up" counts too, except the strap's wake confirmation.
-         * 3: deep and REM are kept with each sleep.
+         * 3: deep and REM are kept with each sleep. 4: the stager's rise in REM is halved
+         * (SleepStagesCalc.REM_RISE), so every stored split is worked out again.
          */
-        const val RULES = 3
+        const val RULES = 4
 
         private const val KEY_RULES = "rules"
         private const val KEY_SLEEPS = "sleeps"

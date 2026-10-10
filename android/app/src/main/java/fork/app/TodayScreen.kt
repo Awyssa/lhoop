@@ -250,7 +250,7 @@ internal fun Stages(night: Night) {
     val light = night.lightMin
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text("Stages", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink.text, modifier = Modifier.weight(1f))
-        Text(if (deep == null) "estimate" else "estimate, REM reads high", fontSize = 13.sp, color = Ink.text3)
+        Text("estimate", fontSize = 13.sp, color = Ink.text3)
     }
     Spacer(Modifier.height(8.dp))
     if (deep == null || rem == null || light == null) {

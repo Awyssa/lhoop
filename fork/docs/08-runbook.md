@@ -326,26 +326,48 @@ Installing the cut build over the original silently drops anything the original 
 core: placed widgets, wrist notifications, a phone alarm or wind-down reminder, daily auto-backup and
 Health Connect access.
 
-### The build with the server backup: not on the phone
+### The build of 10 October: on the phone since 22:33 that day
 
-Written on 2026-10-10. It changes nothing in how the app talks to the strap, but it is the first
-build with the `INTERNET` permission, so it gets its own list.
+It carries three things: the backup to the owner's server (off until he sets it up), Import asking
+before it restores a database over 2 GiB, and the stager's rise in REM halved. It changes nothing in
+how the app talks to the strap, but it is the first build with the `INTERNET` permission.
+
+**Installed on 2026-10-10 at 22:33**, when the owner asked, over the build of 9 October:
+
+- **Before:** a backup exported from the running app and checked (whole, and complete up to the
+  minute the strap came off the wrist that evening). The APK of 9 October is kept to roll back to.
+  The new APK has the same certificate.
+- **Rehearsed first** in an emulator of its own: the build of 9 October, tonight's real backup
+  imported into it, then this build installed over it. It opened on the same night with the new
+  stage split, every tab opened, the Strap tab read "Server backup: not set up", and nothing crashed.
+- **Checks 1 to 4 on the phone:** it installed; opened with no tap it was connected and bonded, with
+  firmware and battery filled in and "Background service: running"; and it synced by itself within
+  a minute of the install. The battery setting and the widget carried over. No crash.
+- **The screens:** Today showed the same night with the same time asleep, heart figures and scores,
+  and the stages re-split: REM down by well over an hour, light up by as much, deep as before, under
+  "estimate". Earlier nights are re-split the same way.
+- **After:** a second export, sound, with no table holding fewer rows than before the install.
+- **Not shown by this:** the strap was off the wrist during the install, so there were no heart rows
+  around it to count. That the recording carries on is for the next hours worn, and the night.
+
+**Still to do:** check 8, a night on this build; and the server's checks below, once it is set up.
+
+The rest of this section is the list for the server backup, written before the install.
 
 **Rehearsed on 2026-10-10** in emulators on the phone's Android version, with the demo build and a
 server on the Mac ([12-server-backup.md](12-server-backup.md), "What steps 0 and 2 showed"): the
 first backup, a repeat, a restore from the server's export, a run after that restore, a wrong token,
 the server down, and a backup with a database over 2 GiB restored after the app asked. No crash.
 
-**Before it goes on the phone:** the server has to be running on the owner's machine with its name
-and certificate, because the release build is HTTPS only and cannot be tried against the Mac.
+**The server is not running yet.** The release build is HTTPS only, so the upload cannot be tried
+from the phone against the Mac: it waits for the owner's server, with its name and certificate.
 
-**To check on the phone, when the owner asks for the install** (after an export, with the last APK
-kept, as for any build):
+**To check on the phone once the server is up:**
 
 1. **Checks 1 to 4 below**, as for any build: connected, bonded, synced, "Background service:
-   running". Nothing about the strap should differ.
+   running". Nothing about the strap should differ. Done on 2026-10-10.
 2. **Before a server is set up:** the Strap tab says "Server backup: not set up", and nothing else
-   has changed.
+   has changed. Seen on 2026-10-10.
 3. **Set up:** the owner types the address and pastes the token. A wrong address is refused with its
    reason. On Wi-Fi and charging the first run starts by itself; otherwise Back up now.
 4. **The first run finishes** and the line reads `complete` with the time. On the server,

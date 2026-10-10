@@ -7,8 +7,10 @@
 // the strap counted as sleep, that time is light sleep, which is also what the engine's own wake veto
 // does (SleepStager.bandVetoRecoverStage).
 //
-// These are estimates. On the first nights recorded the stager put about twice the REM a second device
-// and the wearer's WHOOP history would suggest (fork/docs/04-sleep-recovery-engine.md).
+// And one of the stager's constants is ours: [REM_RISE].
+//
+// These are estimates. Deep comes out near the same share of every sleep, by how the stager finds it.
+// The whole account is in fork/docs/04-sleep-recovery-engine.md.
 package fork.app.scoring
 
 import com.lhoop.analytics.SleepStagerV2
@@ -28,12 +30,25 @@ object SleepStagesCalc {
     const val PAD_AFTER_SEC = 420L
 
     /**
+     * How strongly the stager favours REM as the sleep goes on: half the engine's own
+     * [SleepStagerV2.REM_RISE].
+     *
+     * The engine adds this rise whatever the signals say, and at full strength it carried most of the
+     * REM it called: over the first eight sleeps recorded, the app's REM share was far above the
+     * wearer's own long-run share in 240 nights of WHOOP history, and about one and a half times a
+     * second device's on the two nights both wore. Halved, the app's average sits with those two
+     * references. It is the average that was set this way, not any one night: whether a night with
+     * more REM reads higher is still to be shown. The owner's decision, 2026-10-10.
+     */
+    const val REM_RISE = 0.5
+
+    /**
      * [grav], [hr] and [rr] must cover the sleep, with the padding above where there is data, in time
      * order. Null when there is no motion or heart rate to stage from.
      */
     fun compute(sleep: StrapSleep, grav: List<GravitySample>, hr: List<HrSample>, rr: List<RrInterval>): SleepStages? {
         if (grav.isEmpty() || hr.isEmpty()) return null
-        return fromSegments(sleep, SleepStagerV2.stageSession(sleep.startTs, sleep.endTs + 1, grav, hr, rr, emptyList()))
+        return fromSegments(sleep, SleepStagerV2.stageSession(sleep.startTs, sleep.endTs + 1, grav, hr, rr, emptyList(), REM_RISE))
     }
 
     /**
